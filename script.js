@@ -23,6 +23,31 @@ document.querySelectorAll('.video-card video').forEach((video, index) => {
   video.poster = currentPortfolioCovers[index % currentPortfolioCovers.length];
 });
 
+const latestInstagramPosts = [
+  { image: 'https://scontent.cdninstagram.com/v/t51.82787-15/793997193_18087506789465845_1493912234232938555_n.jpg?stp=dst-jpg_e35_s640x640_tt6&_nc_cat=103&ccb=7-5&_nc_sid=18de74&efg=eyJlZmdfdGFnIjoiQ0xJUFMuYmVzdF9pbWFnZV91cmxnZW4uQzMifQ%3D%3D', link: 'https://www.instagram.com/kemoraiso/reel/Dc4TsgNhvXy/', label: 'post recente / 01' },
+  { image: 'https://scontent.cdninstagram.com/v/t51.82787-15/802223934_18088187423465845_2112713030528299844_n.jpg?stp=dst-jpg_e35_s640x640_tt6&_nc_cat=109&ccb=7-5&_nc_sid=18de74&efg=eyJlZmdfdGFnIjoiQ0xJUFMuYmVzdF9pbWFnZV91cmxnZW4uQzMifQ%3D%3D', link: 'https://www.instagram.com/kemoraiso/reel/DdFP3quBgB9/', label: 'post recente / 02' },
+  { image: 'https://scontent.cdninstagram.com/v/t51.82787-15/789264302_18086872220465845_4064890268782519889_n.jpg?stp=dst-jpg_e35_s640x640_tt6&_nc_cat=101&ccb=7-5&_nc_sid=18de74&efg=eyJlZmdfdGFnIjoiQ0xJUFMuYmVzdF9pbWFnZV91cmxnZW4uQzMifQ%3D%3D', link: 'https://www.instagram.com/kemoraiso/reel/DctXke_BpJF/', label: 'post recente / 03' },
+  { image: 'https://scontent.cdninstagram.com/v/t51.82787-15/779017821_18085290011465845_8676784775363484447_n.jpg?stp=dst-jpg_e35_s640x640_tt6&_nc_cat=101&ccb=7-5&_nc_sid=18de74&efg=eyJlZmdfdGFnIjoiQ0xJUFMuYmVzdF9pbWFnZV91cmxnZW4uQzMifQ%3D%3D', link: 'https://www.instagram.com/kemoraiso/reel/Dbto7oNho3o/', label: 'post recente / 04' },
+  { image: 'https://scontent.cdninstagram.com/v/t51.71878-15/747290094_1244532351019225_4772269882185221831_n.jpg?stp=dst-jpg_e35_s640x640_tt6&_nc_cat=109&ccb=7-5&_nc_sid=18de74&efg=eyJlZmdfdGFnIjoiQ0xJUFMuYmVzdF9pbWFnZV91cmxnZW4uQzMifQ%3D%3D', link: 'https://www.instagram.com/kemoraiso/reel/Dav1BwnB8S4/', label: 'post recente / 05' },
+  { image: 'https://scontent.cdninstagram.com/v/t51.82787-15/779918638_18085420529465845_7587684543376603894_n.jpg?stp=dst-jpg_e35_s640x640_tt6&_nc_cat=106&ccb=7-5&_nc_sid=18de74&efg=eyJlZmdfdGFnIjoiQ0xJUFMuYmVzdF9pbWFnZV91cmxnZW4uQzMifQ%3D%3D', link: 'https://www.instagram.com/kemoraiso/reel/DcRrZvuh33B/', label: 'post recente / 06' },
+  { image: 'https://scontent.cdninstagram.com/v/t51.82787-15/708155102_18072713915465845_7080674928025271012_n.jpg?stp=dst-jpg_e35_s640x640_tt6&_nc_cat=106&ccb=7-5&_nc_sid=18de74&efg=eyJlZmdfdGFnIjoiQ0xJUFMuYmVzdF9pbWFnZV91cmxnZW4uQzMifQ%3D%3D', link: 'https://www.instagram.com/kemoraiso/reel/DY65T1vu4bn/', label: 'post recente / 07' },
+  { image: 'https://scontent.cdninstagram.com/v/t51.82787-15/780087747_18085289960465845_835888731528923369_n.jpg?stp=dst-jpg_e35_s640x640_tt6&_nc_cat=103&ccb=7-5&_nc_sid=18de74&efg=eyJlZmdfdGFnIjoiQ0xJUFMuYmVzdF9pbWFnZV91cmxnZW4uQzMifQ%3D%3D', link: 'https://www.instagram.com/kemoraiso/reel/Daan3KYuQgw/', label: 'post recente / 08' }
+];
+
+const socialCarousel = document.querySelector('[data-social-carousel]');
+if (socialCarousel) {
+  socialCarousel.innerHTML = latestInstagramPosts.map((post, index) => `<a class="photo-card" href="${post.link}" target="_blank" rel="noreferrer"><img src="${post.image}" alt="${post.label}" loading="lazy" onerror="this.onerror=null;this.src='${currentPortfolioCovers[index % currentPortfolioCovers.length]}'"><span>${post.label} <b>&#8599;</b></span></a>`).join('');
+  const photoShell = socialCarousel.closest('.photo-carousel-shell');
+  const photoStep = () => Math.min(socialCarousel.clientWidth * 0.8, 500);
+  photoShell.querySelector('.prev').addEventListener('click', () => socialCarousel.scrollBy({ left: -photoStep(), behavior: 'smooth' }));
+  photoShell.querySelector('.next').addEventListener('click', () => socialCarousel.scrollBy({ left: photoStep(), behavior: 'smooth' }));
+  socialCarousel.addEventListener('scroll', () => {
+    const maxScroll = socialCarousel.scrollWidth - socialCarousel.clientWidth;
+    const progress = photoShell.nextElementSibling.querySelector('.progress-track i');
+    progress.style.width = `${maxScroll ? Math.max(24, (socialCarousel.scrollLeft / maxScroll) * 76 + 24) : 24}%`;
+  });
+}
+
 carousels.forEach((carousel) => {
   const shell = carousel.closest('.carousel-shell');
   const previous = shell.querySelector('.prev');
