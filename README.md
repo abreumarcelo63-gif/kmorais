@@ -4,14 +4,15 @@ Portfolio online da Kelly Morais, criadora de conteudo UGC.
 
 ## Publicar no GitHub Pages
 
-1. Crie um repositorio no GitHub, por exemplo `kelly-morais-portfolio`.
-2. Na pasta deste projeto, configure o remoto:
+1. No repositorio do GitHub, abra `Settings` > `Pages`.
+2. Em `Build and deployment`, selecione `GitHub Actions` como source e salve.
+3. Na pasta deste projeto, configure o remoto:
 
 ```bash
 git remote add origin https://github.com/SEU_USUARIO/kelly-morais-portfolio.git
 ```
 
-3. Envie a branch principal:
+4. Envie a branch principal:
 
 ```bash
 git push -u origin main
