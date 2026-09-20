@@ -86,11 +86,23 @@ filterButtons.forEach((button) => {
   });
 });
 
-document.querySelectorAll('.category-index a').forEach((link) => {
-  link.addEventListener('click', () => {
-    document.querySelector('[data-filter="todos"]').click();
+const categoryObserver = new IntersectionObserver((entries) => {
+  const visibleCategory = entries
+    .filter((entry) => entry.isIntersecting && !entry.target.classList.contains('is-hidden'))
+    .sort((first, second) => second.intersectionRatio - first.intersectionRatio)[0];
+  if (!visibleCategory) return;
+
+  const activeButton = document.querySelector(`[data-filter="${visibleCategory.target.dataset.category}"]`);
+  if (!activeButton) return;
+  filterButtons.forEach((button) => {
+    const isActive = button === activeButton;
+    button.classList.toggle('is-active', isActive);
+    button.setAttribute('aria-pressed', String(isActive));
+    button.setAttribute('aria-current', isActive ? 'true' : 'false');
   });
-});
+  activeButton.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+}, { rootMargin: '-24% 0px -58% 0px', threshold: [0.15, 0.35, 0.6] });
+categoryBlocks.forEach((category) => categoryObserver.observe(category));
 
 const briefingForm = document.querySelector('.briefing-form');
 if (briefingForm) {
