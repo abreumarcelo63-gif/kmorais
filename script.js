@@ -91,3 +91,14 @@ document.querySelectorAll('.category-index a').forEach((link) => {
     document.querySelector('[data-filter="todos"]').click();
   });
 });
+
+const briefingForm = document.querySelector('.briefing-form');
+if (briefingForm) {
+  briefingForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const data = new FormData(briefingForm);
+    const subject = encodeURIComponent(`Briefing de ${data.get('company')}`);
+    const body = encodeURIComponent(`Nome: ${data.get('name')}\nEmpresa/agencia: ${data.get('company')}\n\nProjeto:\n${data.get('message')}`);
+    window.location.href = `mailto:marketing.kellymorais@gmail.com?subject=${subject}&body=${body}`;
+  });
+}
