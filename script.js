@@ -247,6 +247,15 @@ contactTriggers.forEach((trigger) => {
   });
 });
 
+// Abrir diretamente o popup de e-mail / formulário de briefing
+document.querySelectorAll('[data-open-email-modal]').forEach((trigger) => {
+  trigger.addEventListener('click', (e) => {
+    e.preventDefault();
+    closeAllModals();
+    openModal(modalEmailForm);
+  });
+});
+
 // Transição do Linktree para o Formulário de E-mail
 if (btnOpenEmailModal) {
   btnOpenEmailModal.addEventListener('click', () => {
