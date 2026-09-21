@@ -198,7 +198,7 @@ h1 em, h2 em { font-family: Georgia, serif; font-weight: 400; color: var(--coral
 .eyebrow-line { width: 28px; height: 1px; background: var(--coral); display: inline-block; }
 .hero-text { max-width: 370px; color: #666b64; font-size: 14px; line-height: 1.75; margin-bottom: 34px; }
 .hero-actions { display: flex; align-items: center; gap: 28px; }
-.button { display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 16px 20px; font-size: 11px; font-weight: 800; transition: transform .2s, background .2s; }
+.button { display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 16px 20px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; transition: transform .2s, background .2s; }
 .button:hover { transform: translateY(-3px); }
 .button-dark { background: var(--ink); color: var(--paper); }
 .button-dark span { color: var(--lime); }
@@ -1017,8 +1017,9 @@ body::before {
 }
 .btn-text strong {
   display: block;
-  font: 600 14px var(--display);
-  letter-spacing: -.02em;
+  font: 700 13px var(--display);
+  letter-spacing: .02em;
+  text-transform: uppercase;
   margin-bottom: 2px;
 }
 .btn-text small {
