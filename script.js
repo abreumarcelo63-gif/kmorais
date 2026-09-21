@@ -129,13 +129,84 @@ const categoryObserver = new IntersectionObserver((entries) => {
 }, { rootMargin: '-24% 0px -58% 0px', threshold: [0.15, 0.35, 0.6] });
 categoryBlocks.forEach((category) => categoryObserver.observe(category));
 
+/* === FORMULÁRIO — Web3Forms ====================================
+   Os e-mails chegam direto no Gmail da Kelly.
+   Chave: 7fe3ffc0-5845-4f52-b3a7-1aaab028939d
+   ============================================================= */
 const briefingForm = document.querySelector('.briefing-form');
 if (briefingForm) {
-  briefingForm.addEventListener('submit', (event) => {
+  briefingForm.addEventListener('submit', async (event) => {
     event.preventDefault();
-    const data = new FormData(briefingForm);
-    const subject = encodeURIComponent(`Briefing de ${data.get('company')}`);
-    const body = encodeURIComponent(`Nome: ${data.get('name')}\nEmpresa/agencia: ${data.get('company')}\n\nProjeto:\n${data.get('message')}`);
-    window.location.href = `mailto:marketing.kellymorais@gmail.com?subject=${subject}&body=${body}`;
+    const submitBtn = briefingForm.querySelector('button[type="submit"]');
+    const originalBtnText = submitBtn.innerHTML;
+
+    // Estado de loading
+    submitBtn.innerHTML = 'Enviando… <span aria-hidden="true">↻</span>';
+    submitBtn.disabled = true;
+
+    try {
+      const formData = new FormData(briefingForm);
+      const data = Object.fromEntries(formData.entries());
+
+      const response = await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      const result = await response.json();
+
+      if (result.success) {
+        // Sucesso — substituir formulário por mensagem
+        briefingForm.innerHTML = `
+          <div class="form-success">
+            <span class="form-check">✓</span>
+            <p>Briefing recebido!</p>
+            <small>Já caiu na minha caixa de entrada. Em breve entro em contato.<br>Prefere ir direto? <a href="mailto:marketing.kellymorais@gmail.com">marketing.kellymorais@gmail.com</a></small>
+          </div>
+        `;
+      } else {
+        // Erro da API — restaurar botão
+        submitBtn.innerHTML = 'Tentar novamente <span aria-hidden="true">↻</span>';
+        submitBtn.disabled = false;
+        console.warn('Web3Forms error:', result);
+      }
+    } catch (error) {
+      // Erro de rede — restaurar botão
+      submitBtn.innerHTML = originalBtnText;
+      submitBtn.disabled = false;
+      console.error('Erro ao enviar:', error);
+    }
   });
 }
+
+
+/* === HAMBURGER MENU =========================================== */
+const navToggle = document.querySelector('.nav-toggle');
+const mobileNav = document.querySelector('.mobile-nav');
+if (navToggle && mobileNav) {
+  const openMenu = () => {
+    mobileNav.classList.add('is-open');
+    navToggle.classList.add('is-open');
+    document.body.style.overflow = 'hidden';
+    navToggle.setAttribute('aria-expanded', 'true');
+  };
+  const closeMenu = () => {
+    mobileNav.classList.remove('is-open');
+    navToggle.classList.remove('is-open');
+    document.body.style.overflow = '';
+    navToggle.setAttribute('aria-expanded', 'false');
+  };
+  navToggle.addEventListener('click', openMenu);
+  mobileNav.querySelector('.mobile-nav-close').addEventListener('click', closeMenu);
+  mobileNav.querySelectorAll('a').forEach((link) => link.addEventListener('click', closeMenu));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
+}
+
+/* === SKELETON LOADER — marcar card como carregado ============= */
+document.querySelectorAll('.photo-card img').forEach((img) => {
+  if (img.complete) {
+    img.closest('.photo-card')?.classList.add('loaded');
+  } else {
+    img.addEventListener('load', () => img.closest('.photo-card')?.classList.add('loaded'));
+  }
+});
