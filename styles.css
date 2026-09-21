@@ -336,20 +336,21 @@ h1 em, h2 em { font-family: Georgia, serif; font-weight: 400; color: var(--coral
   margin: 0;
 }
 .brands-grid {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(7, auto);
   justify-content: center;
   align-items: center;
-  gap: 14px 18px;
-  max-width: 1080px;
+  gap: 14px clamp(10px, 1.4vw, 18px);
+  max-width: 960px;
   margin: 0 auto;
 }
 .brand-pill {
-  flex: 0 0 auto;
+  display: flex;
+  justify-content: center;
 }
 .brand-pill-circle {
-  width: 88px;
-  height: 88px;
+  width: clamp(80px, 6.5vw, 88px);
+  height: clamp(80px, 6.5vw, 88px);
   border-radius: 50%;
   display: flex;
   flex-direction: column;
@@ -845,8 +846,13 @@ h1 em, h2 em { font-family: Georgia, serif; font-weight: 400; color: var(--coral
 
   /* Marcas trabalhadas — compacto no mobile */
   .brands-section { padding: 16px 16px 14px; }
-  .brands-grid { gap: 12px 14px; }
-  .brand-pill-circle { width: 72px; height: 72px; padding: 6px; }
+  .brands-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px 12px;
+  }
+  .brand-pill-circle { width: 68px; height: 68px; padding: 6px; }
   .brand-dove .brand-name { font-size: 17px; }
   .brand-seda .brand-name { font-size: 16px; }
   .brand-cif .brand-name { font-size: 18px; }
