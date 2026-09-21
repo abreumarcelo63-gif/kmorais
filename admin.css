@@ -629,3 +629,38 @@ body.is-admin-mode .site-header {
   font-size: 16px;
 }
 
+/* Feedback em tempo real de links de mídia no modal */
+.admin-url-feedback {
+  margin-top: 8px;
+  font-size: 11px;
+  line-height: 1.45;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-family: var(--mono);
+}
+
+.admin-url-feedback.is-hidden {
+  display: none;
+}
+
+.admin-url-feedback.info {
+  display: block;
+  background: rgba(214, 238, 130, 0.12);
+  color: var(--lime);
+  border: 1px solid rgba(214, 238, 130, 0.35);
+}
+
+.admin-url-feedback.warn {
+  display: block;
+  background: rgba(235, 110, 75, 0.12);
+  color: var(--coral);
+  border: 1px solid rgba(235, 110, 75, 0.35);
+}
+
+.admin-url-feedback.success {
+  display: block;
+  background: rgba(214, 238, 130, 0.2);
+  color: #ffffff;
+  border: 1px solid var(--lime);
+}
+

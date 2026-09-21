@@ -6,6 +6,25 @@
 const ADMIN_PASSWORD_HASH = '@marcelo123';
 const AUTH_SESSION_KEY = 'km_admin_authenticated';
 
+function normalizeVideoUrl(url) {
+  if (!url || typeof url !== 'string') return '';
+  url = url.trim();
+
+  // 1. Google Drive (converte link de compartilhamento para stream direto)
+  const driveMatch = url.match(/drive\.google\.com\/(?:file\/d\/([a-zA-Z0-9_-]+)|open\?id=([a-zA-Z0-9_-]+))/);
+  if (driveMatch) {
+    const fileId = driveMatch[1] || driveMatch[2];
+    return `https://drive.google.com/uc?export=download&id=${fileId}`;
+  }
+
+  // 2. Dropbox (dl=0 -> raw=1 para streaming direto)
+  if (url.includes('dropbox.com') && url.includes('dl=0')) {
+    return url.replace('dl=0', 'raw=1');
+  }
+
+  return url;
+}
+
 function formatFileSize(bytes) {
   if (!bytes || bytes === 0) return '0 B';
   const k = 1024;
@@ -250,17 +269,25 @@ class KMAdminPanel {
           videoUrl: currentVid,
           posterUrl: currentPost,
           onSave: (data) => {
+            const finalUrl = normalizeVideoUrl(data.videoUrl);
             if (source) {
-              source.src = data.videoUrl;
+              source.src = finalUrl;
               if (data.videoId) source.dataset.mediaId = data.videoId;
               else delete source.dataset.mediaId;
             }
             if (video) {
-              video.poster = data.posterUrl;
+              video.src = finalUrl;
+              if (data.posterUrl) video.poster = data.posterUrl;
               if (data.posterId) video.dataset.posterId = data.posterId;
               else delete video.dataset.posterId;
               video.load();
-              video.play().catch(() => {});
+              const p = video.play();
+              if (p !== undefined) {
+                p.catch(() => {
+                  video.muted = true;
+                  video.play().catch(() => {});
+                });
+              }
             }
           }
         });
@@ -292,16 +319,23 @@ class KMAdminPanel {
           posterUrl: currentPost,
           label: metaSpan ? metaSpan.textContent.trim() : '',
           onSave: (data) => {
+            const finalUrl = normalizeVideoUrl(data.videoUrl);
             if (source) {
-              source.src = data.videoUrl;
+              source.src = finalUrl;
               if (data.videoId) source.dataset.mediaId = data.videoId;
               else delete source.dataset.mediaId;
             }
             if (video) {
-              video.poster = data.posterUrl;
+              video.src = finalUrl;
+              if (data.posterUrl) video.poster = data.posterUrl;
               if (data.posterId) video.dataset.posterId = data.posterId;
               else delete video.dataset.posterId;
               video.load();
+            }
+            if (finalUrl.includes('instagram.com') || finalUrl.includes('tiktok.com')) {
+              card.dataset.externalUrl = finalUrl;
+            } else {
+              delete card.dataset.externalUrl;
             }
             if (metaSpan && data.label) {
               metaSpan.textContent = data.label;
@@ -479,9 +513,51 @@ class KMAdminPanel {
   setupMediaModal() {
     if (!this.mediaModal) return;
 
-    const closeBtn = this.mediaModal.querySelector('.admin-modal-close');
-    const cancelBtn = document.getElementById('admin-modal-cancel');
-    const saveBtn = document.getElementById('admin-modal-save');
+    const feedbackEl = document.getElementById('admin-video-url-feedback');
+    const videoUrlInput = document.getElementById('admin-modal-video-url');
+
+    const updateVideoFeedback = () => {
+      if (!feedbackEl || !videoUrlInput) return;
+      const val = videoUrlInput.value.trim();
+      if (!val) {
+        feedbackEl.className = 'admin-url-feedback is-hidden';
+        feedbackEl.textContent = '';
+        return;
+      }
+
+      const normalized = normalizeVideoUrl(val);
+      if (normalized !== val) {
+        videoUrlInput.value = normalized;
+        feedbackEl.className = 'admin-url-feedback info';
+        feedbackEl.textContent = '✓ Link de nuvem (Google Drive / Dropbox) ajustado automaticamente para streaming direto!';
+        return;
+      }
+
+      if (val.includes('instagram.com/reel') || val.includes('instagram.com/p')) {
+        feedbackEl.className = 'admin-url-feedback warn';
+        feedbackEl.textContent = 'ℹ️ Link de post do Instagram detectado: o card abrirá o Reel ao ser clicado. Para reproduzir o vídeo diretamente na página, envie o arquivo MP4 na aba "📁 Subir do PC".';
+        return;
+      }
+
+      if (val.includes('tiktok.com')) {
+        feedbackEl.className = 'admin-url-feedback warn';
+        feedbackEl.textContent = 'ℹ️ Link do TikTok detectado: o card abrirá o TikTok ao ser clicado. Para reproduzir o vídeo diretamente na página, envie o arquivo MP4 na aba "📁 Subir do PC".';
+        return;
+      }
+
+      if (val.match(/\.(mp4|webm|mov|m4v)(\?.*)?$/i) || val.includes('cloudinary') || val.includes('storage.googleapis') || val.includes('amazonaws')) {
+        feedbackEl.className = 'admin-url-feedback success';
+        feedbackEl.textContent = '✓ Link direto de vídeo reconhecido (.mp4 / streaming)';
+        return;
+      }
+
+      feedbackEl.className = 'admin-url-feedback info';
+      feedbackEl.textContent = '▶️ Link inserido. Certifique-se de que o arquivo é público e acessível.';
+    };
+
+    videoUrlInput?.addEventListener('input', updateVideoFeedback);
+    videoUrlInput?.addEventListener('change', updateVideoFeedback);
+    this.updateVideoFeedback = updateVideoFeedback;
 
     const closeModal = () => {
       this.mediaModal.classList.remove('is-open');
@@ -490,6 +566,10 @@ class KMAdminPanel {
       this.selectedPosterFile = null;
       this.videoDropzoneCtrl?.reset();
       this.posterDropzoneCtrl?.reset();
+      if (feedbackEl) {
+        feedbackEl.className = 'admin-url-feedback is-hidden';
+        feedbackEl.textContent = '';
+      }
     };
 
     if (closeBtn) closeBtn.addEventListener('click', closeModal);
@@ -556,7 +636,8 @@ class KMAdminPanel {
         saveBtn.textContent = 'Processando...';
 
         try {
-          let finalVideoUrl = document.getElementById('admin-modal-video-url')?.value.trim();
+          let rawVideoUrl = document.getElementById('admin-modal-video-url')?.value.trim() || '';
+          let finalVideoUrl = normalizeVideoUrl(rawVideoUrl);
           let finalVideoId = null;
 
           if (this.selectedVideoFile) {
@@ -794,6 +875,7 @@ class KMAdminPanel {
       if (labelGroup) labelGroup.style.display = type === 'video' ? 'block' : 'none';
     }
 
+    this.updateVideoFeedback?.();
     this.mediaModal.classList.add('is-open');
   }
 

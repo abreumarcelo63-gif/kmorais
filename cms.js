@@ -6,6 +6,25 @@
 const KM_CMS_STORAGE_KEY = 'kmorais_cms_content_v1';
 const KM_CMS_SYNC_KEY = 'kmorais_cms_updated_at';
 
+function normalizeVideoUrl(url) {
+  if (!url || typeof url !== 'string') return '';
+  url = url.trim();
+
+  // 1. Google Drive (converte link de compartilhamento para streaming direto)
+  const driveMatch = url.match(/drive\.google\.com\/(?:file\/d\/([a-zA-Z0-9_-]+)|open\?id=([a-zA-Z0-9_-]+))/);
+  if (driveMatch) {
+    const fileId = driveMatch[1] || driveMatch[2];
+    return `https://drive.google.com/uc?export=download&id=${fileId}`;
+  }
+
+  // 2. Dropbox (dl=0 -> raw=1 para streaming direto)
+  if (url.includes('dropbox.com') && url.includes('dl=0')) {
+    return url.replace('dl=0', 'raw=1');
+  }
+
+  return url;
+}
+
 // Função utilitária de Deep Merge para preservar propriedades aninhadas e padrões
 function deepMerge(target, source) {
   if (!source || typeof source !== 'object') return target;
@@ -445,12 +464,11 @@ class KMCMS {
       const heroVideo = document.querySelector('.hero-frame video');
       if (heroVideo) {
         if (data.hero?.video) {
-          const resolvedVideo = await kmMediaStore.resolveUrl(data.hero.video);
-          const src = heroVideo.querySelector('source');
-          if (resolvedVideo && src && src.src !== resolvedVideo) {
-            src.src = resolvedVideo;
-            heroVideo.load();
-          } else if (resolvedVideo && !src && heroVideo.src !== resolvedVideo) {
+          const rawVideo = await kmMediaStore.resolveUrl(data.hero.video);
+          const resolvedVideo = normalizeVideoUrl(rawVideo);
+          if (resolvedVideo) {
+            const src = heroVideo.querySelector('source');
+            if (src) src.src = resolvedVideo;
             heroVideo.src = resolvedVideo;
             heroVideo.load();
           }
@@ -516,13 +534,17 @@ class KMCMS {
           if (video) {
             const src = video.querySelector('source');
             if (item.video) {
-              const resolvedVideo = await kmMediaStore.resolveUrl(item.video);
-              if (resolvedVideo && src && src.src !== resolvedVideo) {
-                src.src = resolvedVideo;
-                video.load();
-              } else if (resolvedVideo && !src && video.src !== resolvedVideo) {
+              const rawVideo = await kmMediaStore.resolveUrl(item.video);
+              const resolvedVideo = normalizeVideoUrl(rawVideo);
+              if (resolvedVideo) {
+                if (src) src.src = resolvedVideo;
                 video.src = resolvedVideo;
                 video.load();
+                if (resolvedVideo.includes('instagram.com') || resolvedVideo.includes('tiktok.com')) {
+                  cards[idx].dataset.externalUrl = resolvedVideo;
+                } else {
+                  delete cards[idx].dataset.externalUrl;
+                }
               }
             }
             if (item.poster) {
@@ -593,19 +615,27 @@ class KMCMS {
 }
 
 // Inicializa e expõe no escopo global
-const kmCMS = new KMCMS();
+let kmCMS = null;
 if (typeof window !== 'undefined') {
+  kmCMS = new KMCMS();
   window.kmCMS = kmCMS;
   window.KMCMS = KMCMS;
+  window.normalizeVideoUrl = normalizeVideoUrl;
 }
 
-// Execução ao carregar
-if (document.readyState === 'interactive' || document.readyState === 'complete') {
-  kmCMS.applyToPage();
-} else {
-  document.addEventListener('DOMContentLoaded', () => {
-    kmCMS.applyToPage();
-  });
+// Execução ao carregar no browser
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'interactive' || document.readyState === 'complete') {
+    kmCMS?.applyToPage();
+  } else {
+    document.addEventListener('DOMContentLoaded', () => {
+      kmCMS?.applyToPage();
+    });
+  }
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { KMCMS, KMMediaStore, normalizeVideoUrl, deepMerge, defaultCMSContent };
 }
 
 // Sincronização em tempo real entre abas:

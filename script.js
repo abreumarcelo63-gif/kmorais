@@ -39,9 +39,8 @@ document.querySelectorAll('.video-card').forEach((card, index) => {
   if (!source || !source.src || source.src.includes('coverr-main')) {
     if (source) {
       source.src = targetVideoUrl;
-    } else {
-      video.src = targetVideoUrl;
     }
+    video.src = targetVideoUrl;
     video.load();
   }
 
@@ -70,7 +69,9 @@ const heroVideo = document.querySelector('.hero-frame video');
 if (heroVideo) {
   const heroSource = heroVideo.querySelector('source');
   if (!heroSource || !heroSource.src || heroSource.src.includes('coverr-main')) {
-    if (heroSource) heroSource.src = 'https://res.cloudinary.com/demo/video/upload/q_auto,w_600/sea_turtle.mp4';
+    const defHero = 'https://res.cloudinary.com/demo/video/upload/q_auto,w_600/sea_turtle.mp4';
+    if (heroSource) heroSource.src = defHero;
+    heroVideo.src = defHero;
     heroVideo.load();
     heroVideo.play().catch(() => {});
   }
@@ -155,6 +156,13 @@ function setupDragToScroll(carousel, isVideo = false) {
     if (isVideo) {
       const card = e.target.closest('.video-card');
       if (!card) return;
+
+      // Se for link de rede social externa (ex: Reel do Instagram ou TikTok), abre no clique
+      if (card.dataset.externalUrl) {
+        window.open(card.dataset.externalUrl, '_blank');
+        return;
+      }
+
       const video = card.querySelector('video');
       if (!video) return;
 
@@ -163,7 +171,14 @@ function setupDragToScroll(carousel, isVideo = false) {
         document.querySelectorAll('.video-card video').forEach((other) => {
           if (other !== video && !other.paused) other.pause();
         });
-        video.play().catch(() => {});
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+          playPromise.catch((err) => {
+            console.warn('Playback bloqueado por política de áudio, tentando muted:', err);
+            video.muted = true;
+            video.play().catch((e) => console.error('Erro na reprodução do vídeo:', e));
+          });
+        }
       } else {
         video.pause();
       }
