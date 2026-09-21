@@ -309,28 +309,35 @@ h1 em, h2 em { font-family: Georgia, serif; font-weight: 400; color: var(--coral
 .filter-button:hover, .filter-button.is-active { border-color: var(--ink); background: var(--ink); color: var(--lime); }
 
 /* === CASES REAIS ============================================== */
-.real-cases { padding-top: 40px; }
-.real-case-grid { display: grid; grid-template-columns: 1.35fr 1fr 1fr; gap: 17px; }
+.real-cases { padding-top: 25px; padding-bottom: 35px; }
+.real-case-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
 .real-case {
-  min-height: 335px;
+  min-height: 290px;
   display: flex;
   flex-direction: column;
   background: var(--ink);
   color: var(--paper);
   overflow: hidden;
+  border-radius: 4px;
   transition: transform .3s, box-shadow .3s;
 }
-.real-case:hover { transform: translateY(-7px); box-shadow: 10px 10px 0 var(--coral); }
-.real-case-featured { grid-row: span 2; min-height: 687px; }
+.real-case:hover { transform: translateY(-5px); box-shadow: 8px 8px 0 var(--coral); }
+.real-case-featured { grid-row: auto; min-height: 290px; }
 .real-case-cover {
-  min-height: 175px;
-  flex: 1;
+  height: 155px;
+  min-height: 155px;
   background-size: cover;
   background-position: center;
   background-color: #2a3330;
-  filter: saturate(.82);
+  filter: saturate(.85);
+  transition: transform .3s ease;
 }
-.real-case-featured .real-case-cover { min-height: 390px; }
+.real-case:hover .real-case-cover { transform: scale(1.03); }
+.real-case-featured .real-case-cover { height: 155px; min-height: 155px; }
 /* Covers dos cases — usar imagens locais/estáveis quando possível */
 .cover-one {
   background-image:
@@ -347,15 +354,20 @@ h1 em, h2 em { font-family: Georgia, serif; font-weight: 400; color: var(--coral
 .cover-four {
   background: linear-gradient(135deg, #1e2522 0%, #2d3d38 40%, #1a2e28 100%);
 }
-.real-case-content { padding: 20px; }
-.real-case-content span, .real-case-content strong { color: var(--lime); font: 9px var(--mono); letter-spacing: .1em; text-transform: uppercase; }
-.real-case-content h3 { font: 600 25px var(--display); letter-spacing: -.05em; margin: 18px 0 9px; }
-.real-case-content p { color: #b5bbb2; font-size: 12px; line-height: 1.6; margin-bottom: 20px; }
-.real-case-content strong { color: var(--coral); }
-.social-proof { display: flex; align-items: center; gap: 20px; padding-top: 25px; border-top: 1px solid var(--line); margin-top: 36px; }
+.real-case-content {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.real-case-content span { color: var(--lime); font: 700 8px var(--mono); letter-spacing: .1em; text-transform: uppercase; }
+.real-case-content h3 { font: 600 16px var(--display); letter-spacing: -.03em; margin: 8px 0 5px; line-height: 1.25; }
+.real-case-content p { color: #b5bbb2; font-size: 11px; line-height: 1.5; margin-bottom: 12px; }
+.real-case-content strong { color: var(--coral); font: 700 9px var(--mono); letter-spacing: .06em; text-transform: uppercase; margin-top: auto; }
+.social-proof { display: flex; align-items: center; gap: 20px; padding-top: 18px; border-top: 1px solid var(--line); margin-top: 22px; }
 .proof-label { color: var(--coral); font: 9px var(--mono); text-transform: uppercase; letter-spacing: .1em; }
-.social-proof strong { font: 600 20px var(--display); }
-.social-proof span:last-child { color: var(--muted); font-size: 12px; }
+.social-proof strong { font: 600 17px var(--display); }
+.social-proof span:last-child { color: var(--muted); font-size: 11px; }
 
 /* === ÚLTIMOS POSTS / CARROSSEL FOTOS ========================= */
 .latest-posts { padding-top: 35px; }
@@ -727,15 +739,17 @@ h1 em, h2 em { font-family: Georgia, serif; font-weight: 400; color: var(--coral
   .filter-bar { gap: 7px; margin: -10px auto 28px; overflow-x: auto; flex-wrap: nowrap; width: 100%; border-radius: 8px; justify-content: flex-start; }
   .filter-button { flex: 0 0 auto; padding: 11px 12px; font-size: 9px; min-height: 40px; }
 
-  /* Cases reais — preservar hierarquia editorial no mobile */
-  .real-cases { padding-top: 20px; }
-  .real-case-grid { display: flex; flex-direction: column; gap: 17px; }
+  /* Cases reais — compacto no mobile */
+  .real-cases { padding-top: 20px; padding-bottom: 25px; }
+  .real-case-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
   .real-case-featured { min-height: 0; }
-  .real-case-featured .real-case-cover { min-height: 300px; }
-  .real-case-cover, .real-case-featured .real-case-cover { min-height: 210px; }
-  .real-case-content h3 { font-size: 20px; }
+  .real-case { min-height: 220px; }
+  .real-case-cover, .real-case-featured .real-case-cover { height: 110px; min-height: 110px; }
+  .real-case-content { padding: 10px 12px; }
+  .real-case-content h3 { font-size: 13px; margin: 4px 0; }
+  .real-case-content p { font-size: 10px; margin-bottom: 8px; line-height: 1.35; }
   .social-proof { display: block; }
-  .social-proof > * { display: block; margin-bottom: 8px; }
+  .social-proof > * { display: block; margin-bottom: 6px; }
 
   /* Carrossel de fotos */
   .latest-posts { padding-top: 20px; }
