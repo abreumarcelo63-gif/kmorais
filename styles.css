@@ -35,11 +35,20 @@ h1 em, h2 em { font-family: Georgia, serif; font-weight: 400; color: var(--coral
   align-items: center;
   justify-content: flex-start;
   gap: clamp(16px, 2.5vw, 36px);
-  padding: 16px 5vw;
+  padding: 14px 5vw;
   border-bottom: 1px solid var(--line);
-  position: absolute;
+  position: fixed;
   top: 0; left: 0; right: 0;
-  z-index: 5;
+  z-index: 40;
+  background: rgba(245, 242, 236, 0.94);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+}
+.site-header.is-hidden-header {
+  transform: translateY(-105%);
+  opacity: 0;
+  pointer-events: none;
 }
 .brand { display: flex; align-items: center; gap: 10px; font: 700 16px var(--display); letter-spacing: .03em; flex-shrink: 0; }
 .brand-mark { display: grid; place-items: center; width: 29px; height: 29px; background: var(--ink); color: var(--lime); border-radius: 50%; font: 700 15px var(--display); }
@@ -131,7 +140,7 @@ h1 em, h2 em { font-family: Georgia, serif; font-weight: 400; color: var(--coral
   position: fixed;
   inset: 0;
   background: var(--ink);
-  z-index: 20;
+  z-index: 60;
   display: flex;
   flex-direction: column;
   justify-content: center;

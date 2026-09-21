@@ -258,6 +258,53 @@ const categoryObserver = new IntersectionObserver((entries) => {
 }, { rootMargin: '-24% 0px -58% 0px', threshold: [0.15, 0.35, 0.6] });
 categoryBlocks.forEach((category) => categoryObserver.observe(category));
 
+/* === HEADER FIXO COM CONTROLE DE VISIBILIDADE ==================
+   - Fixo ao rolar a página.
+   - Some quando o menu de filtros (.filter-bar) estiver fixado no topo.
+   - Some quando chegar na última dobra da página (seção #contato e rodapé).
+   ============================================================= */
+const siteHeader = document.querySelector('.site-header');
+const filterBar = document.querySelector('.filter-bar');
+const portfolioSection = document.querySelector('#trabalhos');
+const contactSection = document.querySelector('#contato');
+
+let headerScrollTicking = false;
+
+function updateHeaderVisibility() {
+  if (!siteHeader) return;
+
+  // 1. Menu de filtros fixo no topo:
+  let isFilterSticky = false;
+  if (filterBar && portfolioSection) {
+    const filterRect = filterBar.getBoundingClientRect();
+    const portfolioRect = portfolioSection.getBoundingClientRect();
+    isFilterSticky = filterRect.top <= 25 && portfolioRect.bottom > 50;
+  }
+
+  // 2. Última dobra da página (Contato e Rodapé):
+  let isLastFold = false;
+  if (contactSection) {
+    const contactRect = contactSection.getBoundingClientRect();
+    isLastFold = contactRect.top <= 120;
+  }
+
+  const shouldHideHeader = isFilterSticky || isLastFold;
+  siteHeader.classList.toggle('is-hidden-header', shouldHideHeader);
+}
+
+window.addEventListener('scroll', () => {
+  if (!headerScrollTicking) {
+    requestAnimationFrame(() => {
+      updateHeaderVisibility();
+      headerScrollTicking = false;
+    });
+    headerScrollTicking = true;
+  }
+}, { passive: true });
+
+window.addEventListener('resize', updateHeaderVisibility, { passive: true });
+updateHeaderVisibility();
+
 /* === FORMULÁRIO — Web3Forms ====================================
    Os e-mails chegam direto no Gmail da Kelly.
    Chave: 72be698d-2c19-4070-9187-73227c85fc02
