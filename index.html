@@ -346,25 +346,41 @@
     </section>
 
     <section class="contact" id="contato" aria-labelledby="contact-title">
-      <div class="contact-inner reveal">
-        <p class="eyebrow"><span class="eyebrow-line"></span> vamos conversar</p>
-        <h2 id="contact-title">Tem uma ideia?<br><em>Vamos tirar do papel.</em></h2>
-        <a class="contact-email" href="mailto:marketing.kellymorais@gmail.com">marketing.kellymorais@gmail.com <span aria-hidden="true">&#8599;</span></a>
+      <div class="contact-main-grid">
+        <div class="contact-inner reveal">
+          <p class="eyebrow"><span class="eyebrow-line"></span> vamos conversar</p>
+          <h2 id="contact-title">Tem uma ideia?<br><em>Vamos tirar do papel.</em></h2>
+        </div>
+        <form class="briefing-form reveal" id="briefing" method="POST">
+          <!-- Web3Forms config — não apagar -->
+          <input type="hidden" name="access_key" value="72be698d-2c19-4070-9187-73227c85fc02">
+          <input type="hidden" name="subject" value="✦ Novo briefing — KMORAIS Portfolio">
+          <input type="hidden" name="from_name" value="KMORAIS Portfolio">
+          <input type="hidden" name="redirect" value="false">
+          <!-- Campos do formulário -->
+          <label>seu nome<input name="name" type="text" placeholder="Como posso te chamar?" required></label>
+          <label>empresa ou agência<input name="company" type="text" placeholder="Nome da empresa" required></label>
+          <label>seu e-mail<input name="email" type="email" placeholder="para eu te responder" required></label>
+          <label>o que você precisa?<textarea name="message" rows="3" placeholder="Conta um pouco sobre a campanha" required></textarea></label>
+          <button class="button button-light" type="submit">Enviar briefing <span aria-hidden="true">&#8599;</span></button>
+        </form>
       </div>
-      <form class="briefing-form reveal" id="briefing" method="POST">
-        <!-- Web3Forms config — não apagar -->
-        <input type="hidden" name="access_key" value="72be698d-2c19-4070-9187-73227c85fc02">
-        <input type="hidden" name="subject" value="✦ Novo briefing — KMORAIS Portfolio">
-        <input type="hidden" name="from_name" value="KMORAIS Portfolio">
-        <input type="hidden" name="redirect" value="false">
-        <!-- Campos do formulário -->
-        <label>seu nome<input name="name" type="text" placeholder="Como posso te chamar?" required></label>
-        <label>empresa ou agência<input name="company" type="text" placeholder="Nome da empresa" required></label>
-        <label>seu e-mail<input name="email" type="email" placeholder="para eu te responder" required></label>
-        <label>o que você precisa?<textarea name="message" rows="3" placeholder="Conta um pouco sobre a campanha" required></textarea></label>
-        <button class="button button-light" type="submit">Enviar briefing <span aria-hidden="true">&#8599;</span></button>
-      </form>
-      <div class="contact-note">marketing.kellymorais@gmail.com<br>+55 11 95636-7834<br><a href="https://www.instagram.com/kemoraiso" target="_blank" rel="noreferrer">@kemoraiso &#8599;</a></div>
+      <div class="contact-note-bar reveal">
+        <div class="contact-note-item">
+          <span>E-mail</span>
+          <a href="mailto:marketing.kellymorais@gmail.com">marketing.kellymorais@gmail.com</a>
+        </div>
+        <span class="note-sep">✦</span>
+        <div class="contact-note-item">
+          <span>WhatsApp</span>
+          <a href="https://wa.me/5511956367834" target="_blank" rel="noreferrer">+55 11 95636-7834</a>
+        </div>
+        <span class="note-sep">✦</span>
+        <div class="contact-note-item">
+          <span>Instagram</span>
+          <a href="https://www.instagram.com/kemoraiso" target="_blank" rel="noreferrer">@kemoraiso &#8599;</a>
+        </div>
+      </div>
     </section>
   </main>
 

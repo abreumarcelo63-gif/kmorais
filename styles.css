@@ -489,21 +489,112 @@ h1 em, h2 em { font-family: Georgia, serif; font-weight: 400; color: var(--coral
 .process-step p { color: var(--muted); font-size: 12px; line-height: 1.7; max-width: 220px; }
 
 /* === CONTATO ================================================== */
-.contact { padding: 90px 12vw 100px; background: var(--coral); color: var(--ink); display: grid; grid-template-columns: minmax(0,1fr) minmax(260px,.75fr) auto; align-items: end; gap: 5vw; }
-.contact > * { min-width: 0; }
-.contact .eyebrow { color: #68483f; }
+.contact {
+  padding: 85px 10vw 70px;
+  background: var(--coral);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  gap: 50px;
+}
+.contact-main-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  align-items: center;
+  gap: 6vw;
+  width: 100%;
+}
+.contact-inner {
+  max-width: 540px;
+}
+.contact .eyebrow { color: #68483f; margin-bottom: 20px; }
 .contact .eyebrow-line { background: var(--ink); }
-.contact h2 { font-size: clamp(49px, 7vw, 92px); }
+.contact h2 { font-size: clamp(48px, 6.2vw, 86px); line-height: .98; margin: 0; }
 .contact h2 em { color: var(--paper); }
-.contact-email { display: inline-block; max-width: 100%; overflow-wrap: anywhere; margin-top: 39px; padding-bottom: 9px; border-bottom: 1px solid var(--ink); font: 600 clamp(15px,2vw,24px) var(--display); }
-.contact-email span { color: var(--lime); }
-.contact-note { font: 10px var(--mono); text-align: right; text-transform: uppercase; line-height: 1.6; letter-spacing: .1em; }
-.contact-note a { border-bottom: 1px solid var(--ink); }
-.briefing-form { display: grid; gap: 13px; min-width: 0; }
-.briefing-form label { display: grid; gap: 7px; font: 9px var(--mono); text-transform: uppercase; letter-spacing: .1em; }
-.briefing-form input, .briefing-form textarea { width: 100%; min-width: 0; border: 0; border-bottom: 1px solid rgba(30,37,34,.5); padding: 9px 0; background: transparent; color: var(--ink); font: 13px var(--body); outline: none; resize: vertical; }
-.briefing-form input::placeholder, .briefing-form textarea::placeholder { color: #805043; }
-.briefing-form input:focus, .briefing-form textarea:focus { border-color: var(--ink); }
+
+/* --- Barra de contatos secundários (Centralizada abaixo) --- */
+.contact-note-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  padding-top: 36px;
+  border-top: 1px solid rgba(30, 37, 34, 0.2);
+  width: 100%;
+  flex-wrap: wrap;
+}
+.contact-note-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 500 11px var(--mono);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.contact-note-item span {
+  color: #68483f;
+}
+.contact-note-item a {
+  color: var(--ink);
+  font-weight: 700;
+  border-bottom: 1px solid var(--ink);
+  padding-bottom: 1px;
+  transition: color .2s, border-color .2s;
+}
+.contact-note-item a:hover {
+  color: var(--paper);
+  border-color: var(--paper);
+}
+.note-sep {
+  color: #68483f;
+  font-size: 10px;
+}
+
+/* --- Formulário do Rodapé --- */
+.briefing-form {
+  display: grid;
+  gap: 15px;
+  min-width: 0;
+  background: rgba(245, 242, 236, 0.15);
+  padding: 30px 28px;
+  border: 1px solid rgba(30, 37, 34, 0.2);
+  border-radius: 4px;
+}
+.briefing-form label {
+  display: grid;
+  gap: 6px;
+  font: 600 10px var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.briefing-form input,
+.briefing-form textarea {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  border-bottom: 1.5px solid rgba(30, 37, 34, 0.45);
+  padding: 10px 0;
+  background: transparent;
+  color: var(--ink);
+  font: 500 14px var(--body);
+  outline: none;
+  resize: vertical;
+  transition: border-color .2s;
+}
+.briefing-form input::placeholder,
+.briefing-form textarea::placeholder {
+  color: rgba(30, 37, 34, 0.55);
+  font-size: 13px;
+}
+.briefing-form input:focus,
+.briefing-form textarea:focus {
+  border-color: var(--ink);
+}
+.briefing-form .button {
+  margin-top: 10px;
+  padding: 15px 24px;
+  font-size: 12px;
+}
 
 /* --- Estado de sucesso do formulário --- */
 .form-success {
@@ -664,9 +755,12 @@ h1 em, h2 em { font-family: Georgia, serif; font-weight: 400; color: var(--coral
   .process-step h3 { margin: 21px 0 10px; }
 
   /* Contato */
-  .contact { padding: 60px 20px; display: block; }
-  .contact-note { margin-top: 55px; text-align: left; }
-  .briefing-form { margin-top: 60px; }
+  .contact { padding: 60px 20px 45px; gap: 35px; }
+  .contact-main-grid { display: flex; flex-direction: column; gap: 35px; }
+  .contact-inner { max-width: 100%; }
+  .contact-note-bar { gap: 14px; flex-direction: column; text-align: center; }
+  .note-sep { display: none; }
+  .briefing-form { padding: 24px 18px; margin-top: 0; }
 
   /* Footer */
   .site-footer { padding: 24px 20px; gap: 15px; flex-wrap: wrap; }
