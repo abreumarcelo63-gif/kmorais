@@ -1,37 +1,90 @@
 const carousels = document.querySelectorAll('[data-carousel]');
 const currentPortfolioCovers = [
-  'https://myworksnet.my.canva.site/kellymoraiso-ugc/_assets/video/4d32b415364851a235067d8a481befb4.jpg',
-  'https://myworksnet.my.canva.site/kellymoraiso-ugc/_assets/video/106275706a988ec0eef37676c5d6cb85.jpg',
-  'https://myworksnet.my.canva.site/kellymoraiso-ugc/_assets/video/de2c605bd923737f10d4b291d84c263e.jpg',
-  'https://myworksnet.my.canva.site/kellymoraiso-ugc/_assets/video/198ec0272a556b47e52dd8d0fef40a0c.jpg',
-  'https://myworksnet.my.canva.site/kellymoraiso-ugc/_assets/video/b6bef147e831d492bd22303e258883c6.jpg',
-  'https://myworksnet.my.canva.site/kellymoraiso-ugc/_assets/video/fa8f5c282670d7341d7c45ef85b9a363.jpg',
-  'https://myworksnet.my.canva.site/kellymoraiso-ugc/_assets/video/a91ba6400b07470fe64b50c1405951cb.jpg',
-  'https://myworksnet.my.canva.site/kellymoraiso-ugc/_assets/video/294e86580a202e9d9863e4ef0b7d6a07.jpg',
-  'https://myworksnet.my.canva.site/kellymoraiso-ugc/_assets/video/c3ccb7e36d1ce8173a4a95055e7cca55.jpg',
-  'https://myworksnet.my.canva.site/kellymoraiso-ugc/_assets/video/4988a4498dc333607b339df447c4d0bc.jpg',
-  'https://myworksnet.my.canva.site/kellymoraiso-ugc/_assets/video/ee4e17591674f0cd720148a22c55a2c0.jpg',
-  'https://myworksnet.my.canva.site/kellymoraiso-ugc/_assets/video/01fa271e1eb4d3e6b23c73c084312e6f.jpg',
-  'https://myworksnet.my.canva.site/kellymoraiso-ugc/_assets/video/409c25580b06dda0eb97d1b803605d81.jpg',
-  'https://myworksnet.my.canva.site/kellymoraiso-ugc/_assets/video/ee0a45d764d0cea2383e329a6361c65c.jpg',
-  'https://myworksnet.my.canva.site/kellymoraiso-ugc/_assets/video/a30c85bf43877178d6739b911c2baa60.jpg',
-  'https://myworksnet.my.canva.site/kellymoraiso-ugc/_assets/video/78c268ed3589a56acbdf5cbb18413023.jpg',
-  'https://myworksnet.my.canva.site/kellymoraiso-ugc/_assets/video/850e6b990b9243015b5c32bdf90e808d.jpg'
+  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=700&q=85&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=700&q=85&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=700&q=85&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=700&q=85&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=700&q=85&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=700&q=85&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=700&q=85&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=700&q=85&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=700&q=85&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=700&q=85&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=700&q=85&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=700&q=85&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=700&q=85&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=700&q=85&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1544717305-2782549b5136?w=700&q=85&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=700&q=85&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=700&q=85&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=700&q=85&auto=format&fit=crop'
 ];
 
-document.querySelectorAll('.video-card video').forEach((video, index) => {
-  video.poster = currentPortfolioCovers[index % currentPortfolioCovers.length];
+const workingPortfolioVideos = [
+  'https://res.cloudinary.com/demo/video/upload/q_auto,w_400/sea_turtle.mp4',
+  'https://res.cloudinary.com/demo/video/upload/q_auto,w_400/finish_line.mp4',
+  'https://res.cloudinary.com/demo/video/upload/q_auto,w_400/dog.mp4',
+  'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
+  'https://res.cloudinary.com/demo/video/upload/q_auto,w_400/snow_deer.mp4',
+  'https://res.cloudinary.com/demo/video/upload/q_auto,w_400/elephants.mp4'
+];
+
+document.querySelectorAll('.video-card').forEach((card, index) => {
+  const video = card.querySelector('video');
+  if (!video) return;
+
+  // Garante fonte funcional de vídeo caso ainda aponte para Coverr 403
+  const source = video.querySelector('source');
+  const targetVideoUrl = workingPortfolioVideos[index % workingPortfolioVideos.length];
+  if (!source || !source.src || source.src.includes('coverr-main')) {
+    if (source) {
+      source.src = targetVideoUrl;
+    } else {
+      video.src = targetVideoUrl;
+    }
+    video.load();
+  }
+
+  // Se o poster for ausente ou do Canva, define foto Unsplash
+  if (!video.poster || video.poster.includes('canva.site')) {
+    video.poster = currentPortfolioCovers[index % currentPortfolioCovers.length];
+  }
+
+  // Insere badge visual de Play se ainda não existir
+  if (!card.querySelector('.video-play-badge')) {
+    const badge = document.createElement('div');
+    badge.className = 'video-play-badge';
+    badge.setAttribute('aria-hidden', 'true');
+    badge.innerHTML = '&#9654;';
+    card.appendChild(badge);
+  }
+
+  // Sincroniza estado visual de reprodução
+  video.addEventListener('play', () => card.classList.add('is-playing'));
+  video.addEventListener('pause', () => card.classList.remove('is-playing'));
+  video.addEventListener('ended', () => card.classList.remove('is-playing'));
 });
 
+// Inicialização do vídeo Hero
+const heroVideo = document.querySelector('.hero-frame video');
+if (heroVideo) {
+  const heroSource = heroVideo.querySelector('source');
+  if (!heroSource || !heroSource.src || heroSource.src.includes('coverr-main')) {
+    if (heroSource) heroSource.src = 'https://res.cloudinary.com/demo/video/upload/q_auto,w_600/sea_turtle.mp4';
+    heroVideo.load();
+    heroVideo.play().catch(() => {});
+  }
+}
+
 const latestInstagramPosts = [
-  { image: 'https://scontent.cdninstagram.com/v/t51.82787-15/793997193_18087506789465845_1493912234232938555_n.jpg?stp=dst-jpg_e35_s640x640_tt6&_nc_cat=103&ccb=7-5&_nc_sid=18de74&efg=eyJlZmdfdGFnIjoiQ0xJUFMuYmVzdF9pbWFnZV91cmxnZW4uQzMifQ%3D%3D', link: 'https://www.instagram.com/kemoraiso/reel/Dc4TsgNhvXy/', label: 'post recente / 01' },
-  { image: 'https://scontent.cdninstagram.com/v/t51.82787-15/802223934_18088187423465845_2112713030528299844_n.jpg?stp=dst-jpg_e35_s640x640_tt6&_nc_cat=109&ccb=7-5&_nc_sid=18de74&efg=eyJlZmdfdGFnIjoiQ0xJUFMuYmVzdF9pbWFnZV91cmxnZW4uQzMifQ%3D%3D', link: 'https://www.instagram.com/kemoraiso/reel/DdFP3quBgB9/', label: 'post recente / 02' },
-  { image: 'https://scontent.cdninstagram.com/v/t51.82787-15/789264302_18086872220465845_4064890268782519889_n.jpg?stp=dst-jpg_e35_s640x640_tt6&_nc_cat=101&ccb=7-5&_nc_sid=18de74&efg=eyJlZmdfdGFnIjoiQ0xJUFMuYmVzdF9pbWFnZV91cmxnZW4uQzMifQ%3D%3D', link: 'https://www.instagram.com/kemoraiso/reel/DctXke_BpJF/', label: 'post recente / 03' },
-  { image: 'https://scontent.cdninstagram.com/v/t51.82787-15/779017821_18085290011465845_8676784775363484447_n.jpg?stp=dst-jpg_e35_s640x640_tt6&_nc_cat=101&ccb=7-5&_nc_sid=18de74&efg=eyJlZmdfdGFnIjoiQ0xJUFMuYmVzdF9pbWFnZV91cmxnZW4uQzMifQ%3D%3D', link: 'https://www.instagram.com/kemoraiso/reel/Dbto7oNho3o/', label: 'post recente / 04' },
-  { image: 'https://scontent.cdninstagram.com/v/t51.71878-15/747290094_1244532351019225_4772269882185221831_n.jpg?stp=dst-jpg_e35_s640x640_tt6&_nc_cat=109&ccb=7-5&_nc_sid=18de74&efg=eyJlZmdfdGFnIjoiQ0xJUFMuYmVzdF9pbWFnZV91cmxnZW4uQzMifQ%3D%3D', link: 'https://www.instagram.com/kemoraiso/reel/Dav1BwnB8S4/', label: 'post recente / 05' },
-  { image: 'https://scontent.cdninstagram.com/v/t51.82787-15/779918638_18085420529465845_7587684543376603894_n.jpg?stp=dst-jpg_e35_s640x640_tt6&_nc_cat=106&ccb=7-5&_nc_sid=18de74&efg=eyJlZmdfdGFnIjoiQ0xJUFMuYmVzdF9pbWFnZV91cmxnZW4uQzMifQ%3D%3D', link: 'https://www.instagram.com/kemoraiso/reel/DcRrZvuh33B/', label: 'post recente / 06' },
-  { image: 'https://scontent.cdninstagram.com/v/t51.82787-15/708155102_18072713915465845_7080674928025271012_n.jpg?stp=dst-jpg_e35_s640x640_tt6&_nc_cat=106&ccb=7-5&_nc_sid=18de74&efg=eyJlZmdfdGFnIjoiQ0xJUFMuYmVzdF9pbWFnZV91cmxnZW4uQzMifQ%3D%3D', link: 'https://www.instagram.com/kemoraiso/reel/DY65T1vu4bn/', label: 'post recente / 07' },
-  { image: 'https://scontent.cdninstagram.com/v/t51.82787-15/780087747_18085289960465845_835888731528923369_n.jpg?stp=dst-jpg_e35_s640x640_tt6&_nc_cat=103&ccb=7-5&_nc_sid=18de74&efg=eyJlZmdfdGFnIjoiQ0xJUFMuYmVzdF9pbWFnZV91cmxnZW4uQzMifQ%3D%3D', link: 'https://www.instagram.com/kemoraiso/reel/Daan3KYuQgw/', label: 'post recente / 08' }
+  { image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&q=80&auto=format&fit=crop', link: 'https://www.instagram.com/kemoraiso/reel/Dc4TsgNhvXy/', label: 'post recente / 01' },
+  { image: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=600&q=80&auto=format&fit=crop', link: 'https://www.instagram.com/kemoraiso/reel/DdFP3quBgB9/', label: 'post recente / 02' },
+  { image: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=600&q=80&auto=format&fit=crop', link: 'https://www.instagram.com/kemoraiso/reel/DctXke_BpJF/', label: 'post recente / 03' },
+  { image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&q=80&auto=format&fit=crop', link: 'https://www.instagram.com/kemoraiso/reel/Dbto7oNho3o/', label: 'post recente / 04' },
+  { image: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=600&q=80&auto=format&fit=crop', link: 'https://www.instagram.com/kemoraiso/reel/Dav1BwnB8S4/', label: 'post recente / 05' },
+  { image: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=600&q=80&auto=format&fit=crop', link: 'https://www.instagram.com/kemoraiso/reel/DcRrZvuh33B/', label: 'post recente / 06' },
+  { image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600&q=80&auto=format&fit=crop', link: 'https://www.instagram.com/kemoraiso/reel/DY65T1vu4bn/', label: 'post recente / 07' },
+  { image: 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=600&q=80&auto=format&fit=crop', link: 'https://www.instagram.com/kemoraiso/reel/Daan3KYuQgw/', label: 'post recente / 08' }
 ];
 
 function setupDragToScroll(carousel, isVideo = false) {
