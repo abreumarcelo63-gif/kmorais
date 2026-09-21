@@ -34,6 +34,90 @@ const latestInstagramPosts = [
   { image: 'https://scontent.cdninstagram.com/v/t51.82787-15/780087747_18085289960465845_835888731528923369_n.jpg?stp=dst-jpg_e35_s640x640_tt6&_nc_cat=103&ccb=7-5&_nc_sid=18de74&efg=eyJlZmdfdGFnIjoiQ0xJUFMuYmVzdF9pbWFnZV91cmxnZW4uQzMifQ%3D%3D', link: 'https://www.instagram.com/kemoraiso/reel/Daan3KYuQgw/', label: 'post recente / 08' }
 ];
 
+function setupDragToScroll(carousel, isVideo = false) {
+  if (!carousel) return;
+
+  let isDown = false;
+  let startX = 0;
+  let scrollStart = 0;
+  let hasDragged = false;
+  let wasDragged = false;
+
+  // Previne arrasto nativo fantasma do navegador em imagens, vídeos e links
+  carousel.querySelectorAll('img, video, a, article').forEach((el) => {
+    el.setAttribute('draggable', 'false');
+    el.addEventListener('dragstart', (e) => e.preventDefault());
+  });
+
+  carousel.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return; // Apenas botão principal (esquerdo)
+    isDown = true;
+    hasDragged = false;
+    startX = e.pageX;
+    scrollStart = carousel.scrollLeft;
+    carousel.style.scrollBehavior = 'auto';
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!isDown) return;
+    const dx = e.pageX - startX;
+    if (!hasDragged && Math.abs(dx) > 6) {
+      hasDragged = true;
+      wasDragged = true;
+      carousel.classList.add('is-pointer-dragging');
+    }
+    if (hasDragged) {
+      e.preventDefault();
+      carousel.scrollLeft = scrollStart - dx;
+    }
+  });
+
+  const stopDrag = () => {
+    if (!isDown) return;
+    isDown = false;
+    carousel.style.scrollBehavior = '';
+    carousel.classList.remove('is-pointer-dragging');
+    if (hasDragged) {
+      setTimeout(() => {
+        wasDragged = false;
+        hasDragged = false;
+      }, 100);
+    }
+  };
+
+  window.addEventListener('mouseup', stopDrag);
+  window.addEventListener('blur', stopDrag);
+
+  // Captura e cancela clique se houve arraste, ou dispara play/pause do vídeo em clique limpo
+  carousel.addEventListener('click', (e) => {
+    if (hasDragged || wasDragged) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      hasDragged = false;
+      wasDragged = false;
+      return;
+    }
+
+    if (isVideo) {
+      const card = e.target.closest('.video-card');
+      if (!card) return;
+      const video = card.querySelector('video');
+      if (!video) return;
+
+      if (video.paused) {
+        // Pausa outros vídeos para evitar áudio/reprodução simultânea
+        document.querySelectorAll('.video-card video').forEach((other) => {
+          if (other !== video && !other.paused) other.pause();
+        });
+        video.play().catch(() => {});
+      } else {
+        video.pause();
+      }
+    }
+  }, true);
+}
+
 const socialCarousel = document.querySelector('[data-social-carousel]');
 if (socialCarousel) {
   socialCarousel.innerHTML = latestInstagramPosts.map((post, index) => `<a class="photo-card" href="${post.link}" target="_blank" rel="noreferrer"><img src="${post.image}" alt="${post.label}" loading="lazy" onerror="this.onerror=null;this.src='${currentPortfolioCovers[index % currentPortfolioCovers.length]}'"><span>${post.label} <b>&#8599;</b></span></a>`).join('');
@@ -46,6 +130,7 @@ if (socialCarousel) {
     const progress = photoShell.nextElementSibling.querySelector('.progress-track i');
     progress.style.width = `${maxScroll ? Math.max(24, (socialCarousel.scrollLeft / maxScroll) * 76 + 24) : 24}%`;
   });
+  setupDragToScroll(socialCarousel, false);
 }
 
 carousels.forEach((carousel) => {
@@ -62,6 +147,7 @@ carousels.forEach((carousel) => {
     const percentage = maxScroll ? Math.max(24, (carousel.scrollLeft / maxScroll) * 76 + 24) : 24;
     progress.style.width = `${percentage}%`;
   });
+  setupDragToScroll(carousel, true);
 });
 
 const revealObserver = new IntersectionObserver((entries) => {
