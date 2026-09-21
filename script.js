@@ -49,13 +49,10 @@ document.querySelectorAll('.video-card').forEach((card, index) => {
     video.poster = currentPortfolioCovers[index % currentPortfolioCovers.length];
   }
 
-  // Insere badge visual de Play se ainda não existir
-  if (!card.querySelector('.video-play-badge')) {
-    const badge = document.createElement('div');
-    badge.className = 'video-play-badge';
-    badge.setAttribute('aria-hidden', 'true');
-    badge.innerHTML = '&#9654;';
-    card.appendChild(badge);
+  // Remove eventual badge legada de Play para não conflitar com player nativo
+  const existingBadge = card.querySelector('.video-play-badge');
+  if (existingBadge) {
+    existingBadge.remove();
   }
 
   // Sincroniza estado visual de reprodução
