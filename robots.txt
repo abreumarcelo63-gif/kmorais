@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /admin.html
 
 Sitemap: https://abreumarcelo63-gif.github.io/kmorais/sitemap.xml
