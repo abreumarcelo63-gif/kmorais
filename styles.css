@@ -839,37 +839,30 @@ body::before {
   gap: 14px;
   padding: 16px 20px;
   border: 1px solid var(--ink);
-  background: #fff;
+  background: #ffffff;
   color: var(--ink);
   text-align: left;
   cursor: pointer;
   border-radius: 4px;
   box-shadow: 4px 5px 0 var(--ink);
-  transition: transform .2s, box-shadow .2s, background .2s;
+  transition: transform .2s, box-shadow .2s, background .2s, border-color .2s;
   text-decoration: none;
   width: 100%;
   box-sizing: border-box;
 }
-.linktree-btn.whatsapp-btn {
-  background: var(--green-bg);
-  border: 1px solid var(--green-border);
-  color: var(--green-text);
-  box-shadow: 4px 5px 0 var(--green-dot);
+.linktree-btn .btn-arrow {
+  color: var(--muted);
+  transition: color .2s, transform .2s;
 }
-.linktree-btn.whatsapp-btn .btn-arrow {
+.linktree-btn:hover {
+  transform: translateY(-2px);
+  background: var(--green-bg);
+  border-color: var(--green-dot);
+  box-shadow: 6px 7px 0 var(--green-dot);
+}
+.linktree-btn:hover .btn-arrow {
   color: var(--green-dot);
-}
-.linktree-btn.whatsapp-btn:hover {
-  background: #c8edd3;
-  box-shadow: 6px 7px 0 var(--green-dot);
-}
-.linktree-btn.email-btn {
-  background: #fff;
-}
-.linktree-btn.email-btn:hover {
-  background: var(--green-bg);
-  border-color: var(--green-border);
-  box-shadow: 6px 7px 0 var(--green-dot);
+  transform: translateX(3px);
 }
 .btn-icon {
   font-size: 22px;
