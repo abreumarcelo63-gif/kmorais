@@ -1,8 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
     <loc>https://abreumarcelo63-gif.github.io/kmorais/</loc>
-    <changefreq>monthly</changefreq>
+    <lastmod>2026-09-21</lastmod>
+    <changefreq>weekly</changefreq>
     <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://myworksnet.my.canva.site/kellymoraiso-ugc/_assets/media/f10c710c686c6a1866045397bdf8367a.jpg</image:loc>
+      <image:title>Kelly Morais - UGC Creator em São Paulo</image:title>
+      <image:caption>Portfólio de conteúdo UGC para marcas e agências</image:caption>
+    </image:image>
   </url>
 </urlset>
