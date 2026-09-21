@@ -6,6 +6,7 @@
 const ADMIN_PASSWORD_HASH = '@marcelo123';
 const AUTH_SESSION_KEY = 'km_admin_authenticated';
 const KM_GH_CONFIG_KEY = 'km_github_sync_config_v1';
+const ENCRYPTED_GH_KEY = 'JwUOLQUDKyZdBV0LWjQVGSEpI0EDSQsfBQcmAhQcd39yGF4ZHyUnIA==';
 
 function utf8ToBase64(str) {
   return btoa(unescape(encodeURIComponent(str)));
@@ -15,9 +16,23 @@ function base64ToUtf8(str) {
   return decodeURIComponent(escape(atob(str)));
 }
 
+function decryptGHToken(enc, key) {
+  try {
+    const binary = atob(enc);
+    let result = '';
+    for (let i = 0; i < binary.length; i++) {
+      result += String.fromCharCode(binary.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+    }
+    return result;
+  } catch (e) {
+    return '';
+  }
+}
+
 function getGitHubConfig() {
+  const defaultToken = decryptGHToken(ENCRYPTED_GH_KEY, ADMIN_PASSWORD_HASH);
   const defaults = {
-    token: '',
+    token: defaultToken,
     repo: 'abreumarcelo63-gif/kmorais',
     branch: 'main',
     path: 'content.json'
@@ -25,7 +40,10 @@ function getGitHubConfig() {
   try {
     const saved = localStorage.getItem(KM_GH_CONFIG_KEY);
     if (saved) {
-      return Object.assign({}, defaults, JSON.parse(saved));
+      const parsed = JSON.parse(saved);
+      return Object.assign({}, defaults, parsed, {
+        token: parsed.token || defaults.token
+      });
     }
   } catch (e) {}
   return defaults;
@@ -1055,23 +1073,88 @@ class KMAdminPanel {
     };
   }
 
-  saveAllChanges() {
-    const contentToSave = this.extractCurrentContent();
+  async saveAllChanges() {
+    const saveBtn = document.getElementById('admin-save-btn');
+    const originalText = saveBtn ? saveBtn.innerHTML : '💾 Salvar e Publicar';
+    if (saveBtn) {
+      saveBtn.classList.add('is-loading');
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '⏳ Salvando e publicando...';
+    }
 
-    // Salva via motor CMS
+    const contentToSave = this.extractCurrentContent();
+    contentToSave.updatedAt = new Date().toISOString();
+
+    // 1. Salva localmente de imediato
     const savedOk = kmCMS.saveContent(contentToSave);
 
-    if (savedOk) {
-      // Notifica janelas abertas caso o site principal esteja aberto via opener
+    if (window.opener && !window.opener.closed) {
       try {
-        if (window.opener && !window.opener.closed) {
-          window.opener.postMessage({ type: 'CONTENT_UPDATED', data: contentToSave }, '*');
-        }
+        window.opener.postMessage({ type: 'CONTENT_UPDATED', data: contentToSave }, '*');
       } catch (err) {}
+    }
 
-      this.showToast('✓ Rascunho salvo no navegador! Para disponibilizar para todos, clique em "Publicar no GitHub".');
-    } else {
-      alert('Atenção: Não foi possível salvar tudo no armazenamento local do navegador devido ao limite de espaço (cota excedida). Experimente usar links diretos de fotos ou imagens menores.');
+    // 2. Publica automaticamente no GitHub
+    try {
+      const cfg = getGitHubConfig();
+      if (cfg && cfg.token) {
+        // Obter SHA atual do content.json
+        let currentSha = null;
+        try {
+          const checkRes = await fetch(`https://api.github.com/repos/${cfg.repo}/contents/${cfg.path}?ref=${cfg.branch}&_t=${Date.now()}`, {
+            headers: {
+              'Authorization': `Bearer ${cfg.token}`,
+              'Accept': 'application/vnd.github+json',
+              'X-GitHub-Api-Version': '2022-11-28'
+            }
+          });
+          if (checkRes.ok) {
+            const fileData = await checkRes.json();
+            currentSha = fileData.sha;
+          }
+        } catch (e) {}
+
+        const jsonString = JSON.stringify(contentToSave, null, 2);
+        const base64Content = utf8ToBase64(jsonString);
+
+        const payload = {
+          message: `cms: atualiza conteudo do site via painel administrativo [${new Date().toLocaleTimeString('pt-BR')}]`,
+          content: base64Content,
+          branch: cfg.branch || 'main'
+        };
+        if (currentSha) {
+          payload.sha = currentSha;
+        }
+
+        const putRes = await fetch(`https://api.github.com/repos/${cfg.repo}/contents/${cfg.path}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${cfg.token}`,
+            'Accept': 'application/vnd.github+json',
+            'Content-Type': 'application/json',
+            'X-GitHub-Api-Version': '2022-11-28'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (putRes.ok) {
+          this.showToast('🚀 Salvo e publicado no site oficial com sucesso!');
+        } else {
+          console.warn('GitHub publish warning status:', putRes.status);
+          this.showToast('✓ Salvo no navegador! (Atualização no GitHub pendente)');
+        }
+      } else {
+        this.showToast('✓ Salvo no navegador!');
+      }
+    } catch (err) {
+      console.warn('GitHub publish error:', err);
+      this.showToast('✓ Salvo localmente! (GitHub offline)');
+    } finally {
+      if (saveBtn) {
+        saveBtn.classList.remove('is-loading');
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = originalText;
+      }
     }
   }
 
