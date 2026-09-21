@@ -210,3 +210,108 @@ document.querySelectorAll('.photo-card img').forEach((img) => {
     img.addEventListener('load', () => img.closest('.photo-card')?.classList.add('loaded'));
   }
 });
+
+/* === POPUPS DE CONTATO (LINKTREE & BRIEFING) =================== */
+const modalLinktree = document.getElementById('modal-linktree');
+const modalEmailForm = document.getElementById('modal-email-form');
+const btnOpenEmailModal = document.getElementById('btn-open-email-modal');
+const btnBackToLinktree = document.getElementById('btn-back-to-linktree');
+const contactTriggers = document.querySelectorAll('[data-open-contact]');
+
+const openModal = (modal) => {
+  if (!modal) return;
+  modal.classList.add('is-active');
+  modal.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+};
+
+const closeModal = (modal) => {
+  if (!modal) return;
+  modal.classList.remove('is-active');
+  modal.setAttribute('aria-hidden', 'true');
+  if (!document.querySelector('.contact-modal.is-active')) {
+    document.body.style.overflow = '';
+  }
+};
+
+const closeAllModals = () => {
+  document.querySelectorAll('.contact-modal').forEach((modal) => closeModal(modal));
+};
+
+// Abrir popup Linktree ao clicar em qualquer CTA configurado
+contactTriggers.forEach((trigger) => {
+  trigger.addEventListener('click', (e) => {
+    e.preventDefault();
+    closeAllModals();
+    openModal(modalLinktree);
+  });
+});
+
+// Transição do Linktree para o Formulário de E-mail
+if (btnOpenEmailModal) {
+  btnOpenEmailModal.addEventListener('click', () => {
+    closeModal(modalLinktree);
+    openModal(modalEmailForm);
+  });
+}
+
+// Botão voltar do Formulário para o Linktree
+if (btnBackToLinktree) {
+  btnBackToLinktree.addEventListener('click', () => {
+    closeModal(modalEmailForm);
+    openModal(modalLinktree);
+  });
+}
+
+// Fechar modais ao clicar em backdrop ou botão de fechar
+document.querySelectorAll('[data-close-modal]').forEach((elem) => {
+  elem.addEventListener('click', () => closeAllModals());
+});
+
+// Fechar com a tecla Escape
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeAllModals();
+});
+
+// Envio assíncrono do formulário dentro do popup modal
+const modalBriefingForm = document.querySelector('.modal-briefing-form');
+if (modalBriefingForm) {
+  modalBriefingForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const submitBtn = modalBriefingForm.querySelector('button[type="submit"]');
+    const originalBtnText = submitBtn.innerHTML;
+
+    submitBtn.innerHTML = 'Enviando… <span aria-hidden="true">↻</span>';
+    submitBtn.disabled = true;
+
+    try {
+      const formData = new FormData(modalBriefingForm);
+      const data = Object.fromEntries(formData.entries());
+
+      const response = await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      const result = await response.json();
+
+      if (result.success) {
+        modalBriefingForm.innerHTML = `
+          <div class="form-success" style="padding: 20px 0; text-align: center;">
+            <span class="form-check" style="margin: 0 auto 10px;">✓</span>
+            <p style="font-size: 18px;">Briefing recebido!</p>
+            <small style="display: block; margin-top: 8px;">Chegou direto na caixa de entrada da Kelly.<br>Em breve ela responderá sua proposta!</small>
+          </div>
+        `;
+      } else {
+        submitBtn.innerHTML = 'Tentar novamente <span aria-hidden="true">↻</span>';
+        submitBtn.disabled = false;
+        console.warn('Web3Forms error:', result);
+      }
+    } catch (error) {
+      submitBtn.innerHTML = originalBtnText;
+      submitBtn.disabled = false;
+      console.error('Erro ao enviar:', error);
+    }
+  });
+}

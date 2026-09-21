@@ -656,3 +656,240 @@ body::before {
   outline-color: var(--coral);
   box-shadow: 10px 10px 0 var(--blush);
 }
+
+/* ============================================================
+   MODAIS DE CONTATO (LINKTREE & BRIEFING)
+   ============================================================ */
+.contact-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s ease;
+}
+.contact-modal.is-active {
+  opacity: 1;
+  pointer-events: all;
+}
+.contact-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(30, 37, 34, 0.65);
+  backdrop-filter: blur(8px);
+}
+.contact-modal-box {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 480px;
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  box-shadow: 12px 14px 0 var(--ink);
+  padding: 36px 32px 30px;
+  transform: translateY(18px) scale(0.98);
+  transition: transform .3s cubic-bezier(0.16, 1, 0.3, 1);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.contact-modal.is-active .contact-modal-box {
+  transform: translateY(0) scale(1);
+}
+.contact-modal-close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  background: none;
+  border: 1px solid var(--line);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  color: var(--ink);
+  font-size: 16px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background .2s, color .2s;
+}
+.contact-modal-close:hover {
+  background: var(--ink);
+  color: var(--lime);
+}
+
+/* --- Modal 1: Linktree Box ----------------------------------- */
+.linktree-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+.linktree-header .brand-mark {
+  margin: 0 auto 14px;
+  width: 36px;
+  height: 36px;
+  font-size: 18px;
+}
+.linktree-header h3 {
+  font: 600 28px var(--display);
+  letter-spacing: -.04em;
+  margin-bottom: 8px;
+}
+.linktree-header p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0 auto;
+  max-width: 340px;
+}
+.linktree-actions {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.linktree-btn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  border: 1px solid var(--ink);
+  background: #fff;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  border-radius: 4px;
+  box-shadow: 4px 5px 0 var(--ink);
+  transition: transform .2s, box-shadow .2s, background .2s;
+  text-decoration: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+.linktree-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 6px 7px 0 var(--ink);
+}
+.linktree-btn.whatsapp-btn:hover {
+  background: #e8f7ec;
+  border-color: #2e7d32;
+  box-shadow: 6px 7px 0 #2e7d32;
+}
+.linktree-btn.email-btn:hover {
+  background: var(--lime);
+}
+.btn-icon {
+  font-size: 22px;
+  flex-shrink: 0;
+}
+.btn-text {
+  flex: 1;
+  min-width: 0;
+}
+.btn-text strong {
+  display: block;
+  font: 600 14px var(--display);
+  letter-spacing: -.02em;
+  margin-bottom: 2px;
+}
+.btn-text small {
+  display: block;
+  font: 500 10px var(--mono);
+  color: var(--muted);
+  letter-spacing: .02em;
+}
+.btn-arrow {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--coral);
+}
+.linktree-footer {
+  text-align: center;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+  font: 500 10px var(--mono);
+  color: var(--muted);
+}
+.linktree-footer a {
+  color: var(--ink);
+  border-bottom: 1px solid var(--ink);
+}
+
+/* --- Modal 2: Formulário Box --------------------------------- */
+.modal-nav-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.modal-nav-bar .contact-modal-close {
+  position: static;
+}
+.modal-back-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  font: 500 10px var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  padding: 4px 0;
+  transition: color .2s;
+}
+.modal-back-btn:hover {
+  color: var(--ink);
+}
+.email-modal-header {
+  margin-bottom: 24px;
+}
+.modal-tag {
+  display: inline-block;
+  font: 500 9px var(--mono);
+  color: var(--coral);
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  margin-bottom: 6px;
+}
+.email-modal-header h3 {
+  font: 600 28px var(--display);
+  letter-spacing: -.04em;
+  margin-bottom: 6px;
+}
+.email-modal-header p {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 0;
+  line-height: 1.6;
+}
+.modal-briefing-form {
+  display: grid;
+  gap: 16px;
+}
+.modal-briefing-form label {
+  display: grid;
+  gap: 6px;
+  font: 500 9px var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--ink);
+}
+.modal-briefing-form input,
+.modal-briefing-form textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  padding: 10px 12px;
+  background: #fff;
+  color: var(--ink);
+  font: 13px var(--body);
+  border-radius: 3px;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color .2s;
+}
+.modal-briefing-form input:focus,
+.modal-briefing-form textarea:focus {
+  border-color: var(--ink);
+}
+.modal-briefing-form .button {
+  margin-top: 8px;
+  width: 100%;
+  padding: 14px;
+}
