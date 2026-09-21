@@ -131,7 +131,7 @@ categoryBlocks.forEach((category) => categoryObserver.observe(category));
 
 /* === FORMULÁRIO — Web3Forms ====================================
    Os e-mails chegam direto no Gmail da Kelly.
-   Chave: 7fe3ffc0-5845-4f52-b3a7-1aaab028939d
+   Chave: 72be698d-2c19-4070-9187-73227c85fc02
    ============================================================= */
 const briefingForm = document.querySelector('.briefing-form');
 if (briefingForm) {
