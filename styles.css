@@ -317,6 +317,101 @@ h1 em, h2 em { font-family: Georgia, serif; font-weight: 400; color: var(--coral
 .filter-button { border: 1px solid var(--line); background: transparent; color: var(--muted); padding: 10px 14px; cursor: pointer; font: 10px var(--mono); text-transform: uppercase; letter-spacing: .04em; transition: background .2s, color .2s, border-color .2s; }
 .filter-button:hover, .filter-button.is-active { border-color: var(--ink); background: var(--ink); color: var(--lime); }
 
+/* === MARCAS QUE JÁ TRABALHEI ================================== */
+.brands-section {
+  padding-top: 30px;
+  padding-bottom: 30px;
+  text-align: center;
+}
+.brands-header {
+  margin-bottom: 28px;
+}
+.brands-header .eyebrow {
+  justify-content: center;
+  margin-bottom: 8px;
+}
+.brands-header h2 {
+  font-size: clamp(32px, 4vw, 54px);
+  letter-spacing: -.05em;
+  margin: 0;
+}
+.brands-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 18px 22px;
+  max-width: 1080px;
+  margin: 0 auto;
+}
+.brand-pill {
+  flex: 0 0 auto;
+}
+.brand-pill-circle {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(30, 37, 34, 0.08);
+  border: 1px solid rgba(30, 37, 34, 0.08);
+  transition: transform .25s ease, box-shadow .25s ease;
+  user-select: none;
+  box-sizing: border-box;
+}
+.brand-pill-circle:hover {
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 8px 20px rgba(30, 37, 34, 0.16);
+}
+
+/* Tipografia e cores específicas de cada marca */
+.brand-dove { background: #ffffff; color: #1c3c73; }
+.brand-dove .brand-name { font-family: Georgia, serif; font-size: 21px; font-style: italic; font-weight: 700; letter-spacing: -.02em; }
+
+.brand-fox { background: #111111; color: #ffffff; }
+.brand-fox .brand-name { font-family: var(--display); font-size: 16px; font-weight: 800; letter-spacing: .08em; }
+.brand-fox .brand-sub { font-family: var(--mono); font-size: 7px; letter-spacing: .18em; color: var(--lime); margin-top: 1px; }
+
+.brand-seda { background: #f7528a; color: #ffffff; }
+.brand-seda .brand-name { font-family: var(--display); font-size: 19px; font-weight: 700; letter-spacing: -.04em; }
+
+.brand-kibon { background: #d71920; color: #ffffff; }
+.brand-kibon .brand-name { font-family: var(--display); font-size: 14px; font-weight: 800; letter-spacing: .06em; }
+
+.brand-omo { background: #003399; color: #ffffff; border-top: 3px solid #e5281b; }
+.brand-omo .brand-name { font-family: var(--display); font-size: 20px; font-weight: 800; letter-spacing: .02em; }
+
+.brand-avon { background: #000000; color: #ffffff; }
+.brand-avon .brand-name { font-family: var(--display); font-size: 15px; font-weight: 700; letter-spacing: .12em; }
+
+.brand-kopenhagen { background: #261612; color: #d4af37; }
+.brand-kopenhagen .brand-name { font-family: Georgia, serif; font-size: 12px; font-style: italic; letter-spacing: .02em; }
+
+.brand-cif { background: #008751; color: #ffffff; }
+.brand-cif .brand-name { font-family: var(--display); font-size: 22px; font-weight: 800; letter-spacing: -.04em; }
+
+.brand-pantene { background: #ffffff; color: #111111; border: 1px solid #e0e0e0; }
+.brand-pantene .brand-name { font-family: var(--display); font-size: 11px; font-weight: 800; letter-spacing: .12em; }
+
+.brand-eudora { background: #3b143a; color: #e5b382; }
+.brand-eudora .brand-name { font-family: var(--display); font-size: 12px; font-weight: 700; letter-spacing: .12em; }
+
+.brand-meli { background: #ffe600; color: #2d3277; }
+.brand-meli .brand-name { font-family: var(--display); font-size: 11px; font-weight: 800; line-height: 1.1; letter-spacing: -.03em; }
+
+.brand-sensodyne { background: #002f6c; color: #ffffff; }
+.brand-sensodyne .brand-name { font-family: var(--display); font-size: 10px; font-weight: 800; letter-spacing: .08em; }
+
+.brand-secret { background: #4a777a; color: #ffffff; }
+.brand-secret .brand-name { font-family: Georgia, serif; font-size: 16px; font-style: italic; font-weight: 700; }
+
+.brand-upseller { background: #ff6a00; color: #ffffff; }
+.brand-upseller .brand-name { font-family: var(--display); font-size: 12px; font-weight: 800; letter-spacing: -.02em; }
+
 /* === CASES REAIS ============================================== */
 .real-cases { padding-top: 25px; padding-bottom: 35px; }
 .real-case-grid {
@@ -747,6 +842,15 @@ h1 em, h2 em { font-family: Georgia, serif; font-weight: 400; color: var(--coral
   /* Filtros — tap targets adequados e centralizados */
   .filter-bar { gap: 7px; margin: -10px auto 28px; overflow-x: auto; flex-wrap: nowrap; width: 100%; border-radius: 8px; justify-content: flex-start; }
   .filter-button { flex: 0 0 auto; padding: 11px 12px; font-size: 9px; min-height: 40px; }
+
+  /* Marcas trabalhadas — compacto no mobile */
+  .brands-section { padding: 25px 20px 20px; }
+  .brands-grid { gap: 12px 14px; }
+  .brand-pill-circle { width: 72px; height: 72px; padding: 6px; }
+  .brand-dove .brand-name { font-size: 17px; }
+  .brand-seda .brand-name { font-size: 16px; }
+  .brand-cif .brand-name { font-size: 18px; }
+  .brand-omo .brand-name { font-size: 16px; }
 
   /* Cases reais — compacto no mobile */
   .real-cases { padding-top: 20px; padding-bottom: 25px; }
