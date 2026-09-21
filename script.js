@@ -96,22 +96,65 @@ document.querySelectorAll('video').forEach((video) => videoObserver.observe(vide
 
 const filterButtons = document.querySelectorAll('[data-filter]');
 const categoryBlocks = document.querySelectorAll('[data-category]');
+let isManualFilterScroll = false;
+let filterScrollTimeout = null;
+
 filterButtons.forEach((button) => {
   button.addEventListener('click', () => {
     const selectedFilter = button.dataset.filter;
+    isManualFilterScroll = true;
+    if (filterScrollTimeout) clearTimeout(filterScrollTimeout);
+
+    // 1. Atualiza estado visual dos botões
     filterButtons.forEach((item) => {
       const isActive = item === button;
       item.classList.toggle('is-active', isActive);
       item.setAttribute('aria-pressed', String(isActive));
+      item.setAttribute('aria-current', isActive ? 'true' : 'false');
     });
+
+    // 2. Filtra as seções de cases (exibe/oculta)
     categoryBlocks.forEach((category) => {
       const shouldShow = selectedFilter === 'todos' || category.dataset.category === selectedFilter;
       category.classList.toggle('is-hidden', !shouldShow);
+    });
+
+    // 3. Centraliza o botão clicado na barra de filtros (especialmente no mobile)
+    button.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+
+    // 4. Rola a página suavemente para o topo do case selecionado,
+    //    evitando que a redução de altura da página jogue o usuário no fim dela.
+    requestAnimationFrame(() => {
+      const targetBlock = selectedFilter === 'todos'
+        ? document.querySelector('#trabalhos')
+        : document.querySelector(`[data-category="${selectedFilter}"]`);
+
+      if (targetBlock) {
+        const filterBar = document.querySelector('.filter-bar');
+        const filterBarHeight = filterBar ? filterBar.offsetHeight + 24 : 75;
+        const targetTop = targetBlock.getBoundingClientRect().top + window.pageYOffset - filterBarHeight;
+
+        window.scrollTo({
+          top: Math.max(0, targetTop),
+          behavior: 'smooth'
+        });
+      }
+
+      filterScrollTimeout = setTimeout(() => {
+        isManualFilterScroll = false;
+      }, 700);
     });
   });
 });
 
 const categoryObserver = new IntersectionObserver((entries) => {
+  // Não dispara durante o scroll automático do clique de filtro
+  if (isManualFilterScroll) return;
+
+  // Se houver filtro ativo (algum bloco oculto), não altera os botões com base no scroll
+  const isAnyHidden = Array.from(categoryBlocks).some((block) => block.classList.contains('is-hidden'));
+  if (isAnyHidden) return;
+
   const visibleCategory = entries
     .filter((entry) => entry.isIntersecting && !entry.target.classList.contains('is-hidden'))
     .sort((first, second) => second.intersectionRatio - first.intersectionRatio)[0];
