@@ -452,6 +452,13 @@ class KMAdminPanel {
       saveBtn.addEventListener('click', () => this.saveAllChanges());
     }
 
+    const viewBtn = document.querySelector('.admin-btn-view');
+    if (viewBtn) {
+      viewBtn.addEventListener('click', () => {
+        this.saveAllChanges();
+      });
+    }
+
     if (resetBtn) {
       resetBtn.addEventListener('click', () => {
         if (confirm('Tem certeza que deseja restaurar os textos e vídeos padrões do site original?')) {
@@ -881,6 +888,16 @@ class KMAdminPanel {
     const aboutImgEl = document.querySelector('.about-image img');
     const aboutImageVal = aboutImgEl?.dataset?.mediaId || (aboutImgEl?.src?.startsWith('blob:') ? '' : aboutImgEl?.src) || '';
 
+    // Serviços & Formatos
+    const servicesTitle = document.querySelector('#services-title')?.innerHTML.trim();
+    const servicesList = [];
+    document.querySelectorAll('.service-card').forEach((card) => {
+      servicesList.push({
+        title: card.querySelector('h3')?.innerHTML.trim() || '',
+        text: card.querySelector('p')?.innerHTML.trim() || ''
+      });
+    });
+
     // Contato
     const contactTitle = document.querySelector('#contact-title')?.innerHTML.trim();
     const contactEmail = document.querySelector('a[href^="mailto:"]')?.textContent.trim();
@@ -903,6 +920,8 @@ class KMAdminPanel {
       portfolioVideos,
       realCases,
       instagramPosts,
+      servicesTitle,
+      servicesList,
       about: {
         title: aboutTitle,
         bio: aboutBio,
@@ -917,9 +936,20 @@ class KMAdminPanel {
     };
 
     // Salva via motor CMS
-    kmCMS.saveContent(contentToSave);
+    const savedOk = kmCMS.saveContent(contentToSave);
 
-    this.showToast('✓ Alterações salvas! A página principal já foi atualizada.');
+    if (savedOk) {
+      // Notifica janelas abertas caso o site principal esteja aberto via opener
+      try {
+        if (window.opener && !window.opener.closed) {
+          window.opener.postMessage({ type: 'CONTENT_UPDATED', data: contentToSave }, '*');
+        }
+      } catch (err) {}
+
+      this.showToast('✓ Alterações salvas! A página principal já foi atualizada.');
+    } else {
+      alert('Atenção: Não foi possível salvar tudo no armazenamento local do navegador devido ao limite de espaço (cota excedida). Experimente usar links diretos de fotos ou imagens menores.');
+    }
   }
 
   showToast(message) {

@@ -4,7 +4,25 @@
  */
 
 const KM_CMS_STORAGE_KEY = 'kmorais_cms_content_v1';
-const KM_CMS_CLOUD_URL = 'https://api.jsonbin.io/v3/b/66ed856fac924618e722db34'; // Fallback cloud sync id
+const KM_CMS_SYNC_KEY = 'kmorais_cms_updated_at';
+
+// Função utilitária de Deep Merge para preservar propriedades aninhadas e padrões
+function deepMerge(target, source) {
+  if (!source || typeof source !== 'object') return target;
+  const output = Object.assign({}, target);
+  for (const key of Object.keys(source)) {
+    const srcVal = source[key];
+    const tgtVal = output[key];
+    if (Array.isArray(srcVal)) {
+      output[key] = srcVal.slice();
+    } else if (srcVal && typeof srcVal === 'object' && !Array.isArray(srcVal)) {
+      output[key] = deepMerge(tgtVal && typeof tgtVal === 'object' ? tgtVal : {}, srcVal);
+    } else if (srcVal !== undefined) {
+      output[key] = srcVal;
+    }
+  }
+  return output;
+}
 
 // Conteúdo padrão extraído do design original
 const defaultCMSContent = {
@@ -35,6 +53,14 @@ const defaultCMSContent = {
   ],
   portfolioTitle: "Cases que<br><em>fazem vender.</em>",
   portfolioIntro: "Do roteiro ao video final, cada entrega nasce alinhada ao objetivo da marca: conectar, explicar ou converter.",
+  portfolioVideos: [],
+  servicesTitle: "Conteudo para<br><em>cada objetivo.</em>",
+  servicesList: [
+    { title: "Videos para Ads", text: "Roteiro alinhado ao objetivo da campanha, com gancho, prova e CTA." },
+    { title: "Marketplace", text: "Videos curtos, diretos e demonstrativos para apresentar produtos e vender mais." },
+    { title: "Live Shop", text: "Conteudo nativo e demonstrativo para aproximar produto, creator e compra." },
+    { title: "Pacote para agencia", text: "Roteiros, variacoes de hook, gravacao e entregas organizadas para seus clientes." }
+  ],
   about: {
     eyebrow: "quem está por trás",
     title: "A amiga que<br>seu público <em>estava procurando.</em>",
@@ -101,18 +127,39 @@ class KMMediaStore {
         resolve(null);
         return;
       }
-      const req = indexedDB.open('kmorais_media_store', 1);
-      req.onupgradeneeded = (e) => {
-        const db = e.target.result;
-        if (!db.objectStoreNames.contains('media')) {
-          db.createObjectStore('media', { keyPath: 'id' });
+
+      let settled = false;
+      const safeResolve = (res) => {
+        if (!settled) {
+          settled = true;
+          resolve(res);
         }
       };
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = (err) => {
-        console.warn('KMMediaStore: IndexedDB init failed', err);
-        resolve(null);
-      };
+
+      // Timeout de segurança: se o IndexedDB demorar ou estiver bloqueado, nunca trava a página
+      setTimeout(() => safeResolve(null), 1200);
+
+      try {
+        const req = indexedDB.open('kmorais_media_store', 1);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains('media')) {
+            db.createObjectStore('media', { keyPath: 'id' });
+          }
+        };
+        req.onsuccess = () => safeResolve(req.result);
+        req.onerror = (err) => {
+          console.warn('KMMediaStore: IndexedDB init error', err);
+          safeResolve(null);
+        };
+        req.onblocked = () => {
+          console.warn('KMMediaStore: IndexedDB blocked');
+          safeResolve(null);
+        };
+      } catch (err) {
+        console.warn('KMMediaStore: IndexedDB open exception', err);
+        safeResolve(null);
+      }
     });
   }
 
@@ -158,11 +205,18 @@ class KMMediaStore {
       if (this.blobUrlCache.has(urlOrId)) {
         return this.blobUrlCache.get(urlOrId);
       }
-      const blob = await this.getMedia(urlOrId);
-      if (blob) {
-        const blobUrl = URL.createObjectURL(blob);
-        this.blobUrlCache.set(urlOrId, blobUrl);
-        return blobUrl;
+      try {
+        const blob = await Promise.race([
+          this.getMedia(urlOrId),
+          new Promise((r) => setTimeout(() => r(null), 2000))
+        ]);
+        if (blob) {
+          const blobUrl = URL.createObjectURL(blob);
+          this.blobUrlCache.set(urlOrId, blobUrl);
+          return blobUrl;
+        }
+      } catch (err) {
+        console.warn('KMMediaStore: erro ao resolver idb URL', err);
       }
       return '';
     }
@@ -184,23 +238,36 @@ class KMCMS {
     try {
       const saved = localStorage.getItem(KM_CMS_STORAGE_KEY);
       if (saved) {
-        return Object.assign({}, defaultCMSContent, JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        return deepMerge(defaultCMSContent, parsed);
       }
     } catch (e) {
       console.warn('CMS: Falha ao carregar conteúdo local', e);
     }
-    return Object.assign({}, defaultCMSContent);
+    return deepMerge({}, defaultCMSContent);
   }
 
   saveContent(newData) {
     try {
-      this.data = Object.assign({}, this.data, newData);
+      this.data = deepMerge(this.data, newData);
       localStorage.setItem(KM_CMS_STORAGE_KEY, JSON.stringify(this.data));
-      // Tenta sincronizar com broadcast channel para atualizar abas abertas em tempo real
-      if ('BroadcastChannel' in window) {
-        const channel = new BroadcastChannel('km_cms_channel');
-        channel.postMessage({ type: 'CONTENT_UPDATED', data: this.data });
+      localStorage.setItem(KM_CMS_SYNC_KEY, String(Date.now()));
+
+      // 1. Sincroniza via BroadcastChannel para outras abas
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        try {
+          const channel = new BroadcastChannel('km_cms_channel');
+          channel.postMessage({ type: 'CONTENT_UPDATED', data: this.data });
+        } catch (err) {
+          console.warn('CMS: BroadcastChannel falhou', err);
+        }
       }
+
+      // 2. Dispara evento customizado na própria janela
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('kmCMSUpdated', { detail: this.data }));
+      }
+
       return true;
     } catch (e) {
       console.error('CMS: Erro ao salvar conteúdo', e);
@@ -208,237 +275,368 @@ class KMCMS {
     }
   }
 
+  reloadAndApply() {
+    this.data = this.loadLocalContent();
+    return this.applyToPage();
+  }
+
   async applyToPage() {
     const data = this.data;
     if (!data) return;
 
-    // 1. Hero
-    const heroEyebrow = document.querySelector('.hero-copy .eyebrow');
-    if (heroEyebrow && data.hero?.eyebrow) {
-      heroEyebrow.innerHTML = `<span class="eyebrow-line"></span> ${data.hero.eyebrow}`;
-    }
+    // =========================================================================
+    // FASE 1: APLICAÇÃO SÍNCRONA IMEDIATA DE TEXTOS (SEM AWAIT, EXECUTA EM 1ms)
+    // =========================================================================
 
-    const heroTitle = document.querySelector('#hero-title');
-    if (heroTitle && data.hero?.title) {
-      heroTitle.innerHTML = data.hero.title;
-    }
-
-    const heroText = document.querySelector('.hero-text');
-    if (heroText && data.hero?.text) {
-      heroText.innerHTML = data.hero.text;
-    }
-
-    const heroSticker = document.querySelector('.hero-sticker');
-    if (heroSticker && data.hero?.sticker) {
-      heroSticker.innerHTML = data.hero.sticker;
-    }
-
-    const heroVideo = document.querySelector('.hero-frame video');
-    if (heroVideo && data.hero?.video) {
-      const resolvedVideo = await kmMediaStore.resolveUrl(data.hero.video);
-      const src = heroVideo.querySelector('source');
-      if (resolvedVideo && src && src.src !== resolvedVideo) {
-        src.src = resolvedVideo;
-        heroVideo.load();
-      } else if (resolvedVideo && !src && heroVideo.src !== resolvedVideo) {
-        heroVideo.src = resolvedVideo;
-        heroVideo.load();
+    // 1. Hero Texts
+    try {
+      const heroEyebrow = document.querySelector('.hero-copy .eyebrow');
+      if (heroEyebrow && data.hero?.eyebrow) {
+        heroEyebrow.innerHTML = `<span class="eyebrow-line"></span> ${data.hero.eyebrow}`;
       }
-      if (data.hero?.poster) {
-        const resolvedPoster = await kmMediaStore.resolveUrl(data.hero.poster);
-        if (resolvedPoster && heroVideo.poster !== resolvedPoster) {
-          heroVideo.poster = resolvedPoster;
+
+      const heroTitle = document.querySelector('#hero-title');
+      if (heroTitle && data.hero?.title) {
+        heroTitle.innerHTML = data.hero.title;
+      }
+
+      const heroText = document.querySelector('.hero-text');
+      if (heroText && data.hero?.text) {
+        heroText.innerHTML = data.hero.text;
+      }
+
+      const heroSticker = document.querySelector('.hero-sticker');
+      if (heroSticker && data.hero?.sticker) {
+        heroSticker.innerHTML = data.hero.sticker;
+      }
+    } catch (e) {
+      console.error('CMS: Erro ao aplicar textos do Hero', e);
+    }
+
+    // 2. Título da seção de Marcas
+    try {
+      const brandsTitle = document.querySelector('#brands-title');
+      if (brandsTitle && data.brandsTitle) {
+        brandsTitle.innerHTML = data.brandsTitle;
+      }
+    } catch (e) {
+      console.error('CMS: Erro ao aplicar título de Marcas', e);
+    }
+
+    // 3. Título e intro do Portfólio
+    try {
+      const portfolioTitle = document.querySelector('#portfolio-title');
+      if (portfolioTitle && data.portfolioTitle) {
+        portfolioTitle.innerHTML = data.portfolioTitle;
+      }
+
+      const portfolioIntro = document.querySelector('.portfolio .section-intro') || document.querySelector('.section-intro');
+      if (portfolioIntro && data.portfolioIntro) {
+        portfolioIntro.innerHTML = data.portfolioIntro;
+      }
+    } catch (e) {
+      console.error('CMS: Erro ao aplicar textos do Portfólio', e);
+    }
+
+    // 4. Cases Reais ("Cases que saem da tela.") - Textos e Links
+    try {
+      if (data.realCases && Array.isArray(data.realCases)) {
+        const cases = document.querySelectorAll('.real-case');
+        data.realCases.forEach((item, idx) => {
+          if (!cases[idx] || !item) return;
+          const el = cases[idx];
+          if (item.link) el.href = item.link;
+          const tag = el.querySelector('.real-case-content span');
+          const title = el.querySelector('.real-case-content h3');
+          const desc = el.querySelector('.real-case-content p');
+          if (tag && item.tag) tag.innerHTML = item.tag;
+          if (title && item.title) title.innerHTML = item.title;
+          if (desc && item.desc) desc.innerHTML = item.desc;
+        });
+      }
+    } catch (e) {
+      console.error('CMS: Erro ao aplicar textos de Cases Reais', e);
+    }
+
+    // 5. Posts do Instagram ("O que está no ar agora.") - Legendas e Links
+    try {
+      if (data.instagramPosts && Array.isArray(data.instagramPosts)) {
+        const photoCards = document.querySelectorAll('.photo-card');
+        data.instagramPosts.forEach((post, idx) => {
+          if (!photoCards[idx] || !post) return;
+          const card = photoCards[idx];
+          if (post.link) card.href = post.link;
+          const span = card.querySelector('span');
+          if (span && post.label) {
+            span.innerHTML = `${post.label} <b>&#8599;</b>`;
+          }
+        });
+      }
+    } catch (e) {
+      console.error('CMS: Erro ao aplicar textos do Instagram', e);
+    }
+
+    // 6. Serviços - Título e Cards
+    try {
+      const servTitle = document.querySelector('#services-title');
+      if (servTitle && data.servicesTitle) {
+        servTitle.innerHTML = data.servicesTitle;
+      }
+      if (data.servicesList && Array.isArray(data.servicesList)) {
+        const serviceCards = document.querySelectorAll('.service-card');
+        data.servicesList.forEach((s, idx) => {
+          if (!serviceCards[idx] || !s) return;
+          const card = serviceCards[idx];
+          const h3 = card.querySelector('h3');
+          const p = card.querySelector('p');
+          if (h3 && s.title) h3.innerHTML = s.title;
+          if (p && s.text) p.innerHTML = s.text;
+        });
+      }
+    } catch (e) {
+      console.error('CMS: Erro ao aplicar textos de Serviços', e);
+    }
+
+    // 7. Sobre - Título e Bio
+    try {
+      const aboutTitle = document.querySelector('#about-title');
+      if (aboutTitle && data.about?.title) {
+        aboutTitle.innerHTML = data.about.title;
+      }
+
+      const aboutContentP = document.querySelector('.about-content p:nth-of-type(2)');
+      if (aboutContentP && data.about?.bio) {
+        aboutContentP.innerHTML = data.about.bio;
+      }
+    } catch (e) {
+      console.error('CMS: Erro ao aplicar textos da seção Sobre', e);
+    }
+
+    // 8. Contato - Título, Email e WhatsApp
+    try {
+      const contactTitle = document.querySelector('#contact-title');
+      if (contactTitle && data.contact?.title) {
+        contactTitle.innerHTML = data.contact.title;
+      }
+
+      if (data.contact?.email) {
+        document.querySelectorAll('a[href^="mailto:"]').forEach((a) => {
+          a.href = `mailto:${data.contact.email}`;
+          if (a.textContent.includes('@')) a.textContent = data.contact.email;
+        });
+      }
+
+      if (data.contact?.whatsapp) {
+        document.querySelectorAll('a[href*="wa.me"]').forEach((a) => {
+          if (data.contact?.whatsappLink) a.href = data.contact.whatsappLink;
+          if (a.textContent.includes('+55')) a.textContent = data.contact.whatsapp;
+        });
+      }
+    } catch (e) {
+      console.error('CMS: Erro ao aplicar contatos', e);
+    }
+
+    // =========================================================================
+    // FASE 2: RESOLUÇÃO ASSÍNCRONA DE MÍDIAS (ISOLADAS, EM PARALELO)
+    // =========================================================================
+
+    // 9. Hero Video & Poster
+    try {
+      const heroVideo = document.querySelector('.hero-frame video');
+      if (heroVideo) {
+        if (data.hero?.video) {
+          const resolvedVideo = await kmMediaStore.resolveUrl(data.hero.video);
+          const src = heroVideo.querySelector('source');
+          if (resolvedVideo && src && src.src !== resolvedVideo) {
+            src.src = resolvedVideo;
+            heroVideo.load();
+          } else if (resolvedVideo && !src && heroVideo.src !== resolvedVideo) {
+            heroVideo.src = resolvedVideo;
+            heroVideo.load();
+          }
+        }
+        if (data.hero?.poster) {
+          const resolvedPoster = await kmMediaStore.resolveUrl(data.hero.poster);
+          if (resolvedPoster && heroVideo.poster !== resolvedPoster) {
+            heroVideo.poster = resolvedPoster;
+          }
         }
       }
+    } catch (e) {
+      console.error('CMS: Erro ao resolver mídia do Hero', e);
     }
 
-    // 2. Títulos gerais
-    const brandsTitle = document.querySelector('#brands-title');
-    if (brandsTitle && data.brandsTitle) {
-      brandsTitle.innerHTML = data.brandsTitle;
+    // 10. Marcas (Brand Pills - Nomes Visíveis e Logotipos Customizados)
+    try {
+      if (data.brandsList && Array.isArray(data.brandsList)) {
+        const brandPills = document.querySelectorAll('.brands-grid .brand-pill');
+        await Promise.allSettled(data.brandsList.map(async (item, idx) => {
+          if (!brandPills[idx] || !item) return;
+          const pill = brandPills[idx];
+          const circle = pill.querySelector('.brand-pill-circle');
+          if (!circle) return;
+
+          if (item.name) {
+            pill.title = item.name;
+            const nameSpan = circle.querySelector('.brand-name');
+            if (nameSpan) nameSpan.textContent = item.name;
+          }
+
+          if (item.image) {
+            const resolvedImg = await kmMediaStore.resolveUrl(item.image);
+            if (resolvedImg) {
+              circle.classList.add('has-custom-logo');
+              circle.dataset.customLogo = item.image;
+              let img = circle.querySelector('img.brand-logo-img');
+              if (!img) {
+                circle.innerHTML = `<img src="${resolvedImg}" alt="${item.name || ''}" class="brand-logo-img">`;
+              } else {
+                img.src = resolvedImg;
+                img.alt = item.name || '';
+              }
+            }
+          }
+        }));
+      }
+    } catch (e) {
+      console.error('CMS: Erro ao resolver logotipos de Marcas', e);
     }
 
-    // 2.5. Marcas e Logotipos Customizados
-    if (data.brandsList && Array.isArray(data.brandsList)) {
-      const brandPills = document.querySelectorAll('.brands-grid .brand-pill');
-      for (let idx = 0; idx < data.brandsList.length; idx++) {
-        const item = data.brandsList[idx];
-        if (!brandPills[idx]) continue;
-        const pill = brandPills[idx];
-        const circle = pill.querySelector('.brand-pill-circle');
-        if (!circle) continue;
+    // 11. Vídeos do Portfólio (30 cards)
+    try {
+      if (data.portfolioVideos && Array.isArray(data.portfolioVideos) && data.portfolioVideos.length > 0) {
+        const cards = document.querySelectorAll('.video-card');
+        await Promise.allSettled(data.portfolioVideos.map(async (item, idx) => {
+          if (!cards[idx] || !item) return;
+          const video = cards[idx].querySelector('video');
+          const metaSpan = cards[idx].querySelector('.video-meta span:first-child');
+          if (metaSpan && item.label) {
+            metaSpan.innerHTML = item.label;
+          }
+          if (video) {
+            const src = video.querySelector('source');
+            if (item.video) {
+              const resolvedVideo = await kmMediaStore.resolveUrl(item.video);
+              if (resolvedVideo && src && src.src !== resolvedVideo) {
+                src.src = resolvedVideo;
+                video.load();
+              } else if (resolvedVideo && !src && video.src !== resolvedVideo) {
+                video.src = resolvedVideo;
+                video.load();
+              }
+            }
+            if (item.poster) {
+              const resolvedPoster = await kmMediaStore.resolveUrl(item.poster);
+              if (resolvedPoster && video.poster !== resolvedPoster) {
+                video.poster = resolvedPoster;
+              }
+            }
+          }
+        }));
+      }
+    } catch (e) {
+      console.error('CMS: Erro ao resolver vídeos do Portfólio', e);
+    }
 
-        if (item.name) {
-          pill.title = item.name;
-        }
+    // 12. Cases Reais - Capas de Imagem
+    try {
+      if (data.realCases && Array.isArray(data.realCases)) {
+        const cases = document.querySelectorAll('.real-case');
+        await Promise.allSettled(data.realCases.map(async (item, idx) => {
+          if (!cases[idx] || !item) return;
+          const cover = cases[idx].querySelector('.real-case-cover');
+          if (cover && item.cover) {
+            const resolvedCover = await kmMediaStore.resolveUrl(item.cover);
+            if (resolvedCover) {
+              cover.style.backgroundImage = `url("${resolvedCover}")`;
+              cases[idx].dataset.coverUrl = item.cover;
+            }
+          }
+        }));
+      }
+    } catch (e) {
+      console.error('CMS: Erro ao resolver capas de Cases Reais', e);
+    }
 
-        if (item.image) {
-          const resolvedImg = await kmMediaStore.resolveUrl(item.image);
-          if (resolvedImg) {
-            circle.classList.add('has-custom-logo');
-            circle.dataset.customLogo = item.image;
-            let img = circle.querySelector('img.brand-logo-img');
-            if (!img) {
-              circle.innerHTML = `<img src="${resolvedImg}" alt="${item.name || ''}" class="brand-logo-img">`;
-            } else {
+    // 13. Posts do Instagram - Imagens
+    try {
+      if (data.instagramPosts && Array.isArray(data.instagramPosts)) {
+        const photoCards = document.querySelectorAll('.photo-card');
+        await Promise.allSettled(data.instagramPosts.map(async (post, idx) => {
+          if (!photoCards[idx] || !post) return;
+          const img = photoCards[idx].querySelector('img');
+          if (img && post.image) {
+            const resolvedImg = await kmMediaStore.resolveUrl(post.image);
+            if (resolvedImg && img.src !== resolvedImg) {
               img.src = resolvedImg;
-              img.alt = item.name || '';
             }
           }
+        }));
+      }
+    } catch (e) {
+      console.error('CMS: Erro ao resolver fotos do Instagram', e);
+    }
+
+    // 14. Foto da Kelly (Sobre)
+    try {
+      const aboutImg = document.querySelector('.about-image img');
+      if (aboutImg && data.about?.image) {
+        const resolvedImg = await kmMediaStore.resolveUrl(data.about.image);
+        if (resolvedImg && aboutImg.src !== resolvedImg) {
+          aboutImg.src = resolvedImg;
         }
       }
-    }
-
-    const portfolioTitle = document.querySelector('#portfolio-title');
-    if (portfolioTitle && data.portfolioTitle) {
-      portfolioTitle.innerHTML = data.portfolioTitle;
-    }
-
-    const portfolioIntro = document.querySelector('.section-intro');
-    if (portfolioIntro && data.portfolioIntro) {
-      portfolioIntro.innerHTML = data.portfolioIntro;
-    }
-
-    // 3. Vídeos do portfólio customizados
-    if (data.portfolioVideos && Array.isArray(data.portfolioVideos)) {
-      const cards = document.querySelectorAll('.video-card');
-      for (let idx = 0; idx < data.portfolioVideos.length; idx++) {
-        const item = data.portfolioVideos[idx];
-        if (!cards[idx]) continue;
-        const video = cards[idx].querySelector('video');
-        const metaSpan = cards[idx].querySelector('.video-meta span:first-child');
-        if (video) {
-          const src = video.querySelector('source');
-          if (item.video) {
-            const resolvedVideo = await kmMediaStore.resolveUrl(item.video);
-            if (resolvedVideo && src && src.src !== resolvedVideo) {
-              src.src = resolvedVideo;
-              video.load();
-            } else if (resolvedVideo && !src && video.src !== resolvedVideo) {
-              video.src = resolvedVideo;
-              video.load();
-            }
-          }
-          if (item.poster) {
-            const resolvedPoster = await kmMediaStore.resolveUrl(item.poster);
-            if (resolvedPoster && video.poster !== resolvedPoster) {
-              video.poster = resolvedPoster;
-            }
-          }
-        }
-        if (metaSpan && item.label) {
-          metaSpan.innerHTML = item.label;
-        }
-      }
-    }
-
-    // 3.5. Cases Reais ("Cases que saem da tela")
-    if (data.realCases && Array.isArray(data.realCases)) {
-      const cases = document.querySelectorAll('.real-case');
-      for (let idx = 0; idx < data.realCases.length; idx++) {
-        const item = data.realCases[idx];
-        if (!cases[idx]) continue;
-        const el = cases[idx];
-        const cover = el.querySelector('.real-case-cover');
-        const tag = el.querySelector('.real-case-content span');
-        const title = el.querySelector('.real-case-content h3');
-        const desc = el.querySelector('.real-case-content p');
-
-        if (item.link) el.href = item.link;
-        if (cover && item.cover) {
-          const resolvedCover = await kmMediaStore.resolveUrl(item.cover);
-          if (resolvedCover) {
-            cover.style.backgroundImage = `url("${resolvedCover}")`;
-            el.dataset.coverUrl = item.cover;
-          }
-        }
-        if (tag && item.tag) tag.innerHTML = item.tag;
-        if (title && item.title) title.innerHTML = item.title;
-        if (desc && item.desc) desc.innerHTML = item.desc;
-      }
-    }
-
-    // 3.6. Últimos Posts do Instagram ("O que está no ar agora")
-    if (data.instagramPosts && Array.isArray(data.instagramPosts)) {
-      const photoCards = document.querySelectorAll('.photo-card');
-      for (let idx = 0; idx < data.instagramPosts.length; idx++) {
-        const post = data.instagramPosts[idx];
-        if (!photoCards[idx]) continue;
-        const card = photoCards[idx];
-        const img = card.querySelector('img');
-        const span = card.querySelector('span');
-
-        if (post.link) card.href = post.link;
-        if (img && post.image) {
-          const resolvedImg = await kmMediaStore.resolveUrl(post.image);
-          if (resolvedImg) img.src = resolvedImg;
-        }
-        if (span && post.label) {
-          span.innerHTML = `${post.label} <b>&#8599;</b>`;
-        }
-      }
-    }
-
-    // 4. Sobre
-    const aboutTitle = document.querySelector('#about-title');
-    if (aboutTitle && data.about?.title) {
-      aboutTitle.innerHTML = data.about.title;
-    }
-
-    const aboutContentP = document.querySelector('.about-content p:nth-of-type(2)');
-    if (aboutContentP && data.about?.bio) {
-      aboutContentP.innerHTML = data.about.bio;
-    }
-
-    const aboutImg = document.querySelector('.about-image img');
-    if (aboutImg && data.about?.image) {
-      const resolvedImg = await kmMediaStore.resolveUrl(data.about.image);
-      if (resolvedImg) aboutImg.src = resolvedImg;
-    }
-
-    // 5. Contato
-    const contactTitle = document.querySelector('#contact-title');
-    if (contactTitle && data.contact?.title) {
-      contactTitle.innerHTML = data.contact.title;
-    }
-
-    const emailLinks = document.querySelectorAll('a[href^="mailto:"]');
-    if (data.contact?.email) {
-      emailLinks.forEach((a) => {
-        a.href = `mailto:${data.contact.email}`;
-        if (a.textContent.includes('@')) a.textContent = data.contact.email;
-      });
-    }
-
-    const waLinks = document.querySelectorAll('a[href*="wa.me"]');
-    if (data.contact?.whatsapp) {
-      waLinks.forEach((a) => {
-        if (data.contact?.whatsappLink) a.href = data.contact.whatsappLink;
-        if (a.textContent.includes('+55')) a.textContent = data.contact.whatsapp;
-      });
+    } catch (e) {
+      console.error('CMS: Erro ao resolver foto da Kelly', e);
     }
   }
 }
 
-// Inicializa e escuta atualizações
+// Inicializa e expõe no escopo global
 const kmCMS = new KMCMS();
-document.addEventListener('DOMContentLoaded', () => {
-  kmCMS.applyToPage();
-});
+if (typeof window !== 'undefined') {
+  window.kmCMS = kmCMS;
+  window.KMCMS = KMCMS;
+}
 
-// Atualiza na hora se outra aba (ex: o Admin) salvar alterações
-if ('BroadcastChannel' in window) {
-  const channel = new BroadcastChannel('km_cms_channel');
-  channel.onmessage = (event) => {
-    if (event.data && event.data.type === 'CONTENT_UPDATED') {
+// Execução ao carregar
+if (document.readyState === 'interactive' || document.readyState === 'complete') {
+  kmCMS.applyToPage();
+} else {
+  document.addEventListener('DOMContentLoaded', () => {
+    kmCMS.applyToPage();
+  });
+}
+
+// Sincronização em tempo real entre abas:
+// 1. BroadcastChannel
+if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+  try {
+    const channel = new BroadcastChannel('km_cms_channel');
+    channel.onmessage = (event) => {
+      if (event.data && event.data.type === 'CONTENT_UPDATED') {
+        kmCMS.data = event.data.data;
+        kmCMS.applyToPage();
+      }
+    };
+  } catch (e) {
+    console.warn('CMS: BroadcastChannel listener warning', e);
+  }
+}
+
+// 2. Storage event padrão universal (disparado entre abas no mesmo origin)
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (event) => {
+    if (event.key === KM_CMS_STORAGE_KEY || event.key === KM_CMS_SYNC_KEY) {
+      kmCMS.reloadAndApply();
+    }
+  });
+
+  // 3. PostMessage (para comunicação quando aberta via popup/opener)
+  window.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'CONTENT_UPDATED' && event.data.data) {
       kmCMS.data = event.data.data;
       kmCMS.applyToPage();
     }
-  };
+  });
 }
-
-// Execução imediata caso o DOM já esteja pronto
-if (document.readyState === 'interactive' || document.readyState === 'complete') {
-  kmCMS.applyToPage();
-}
-
