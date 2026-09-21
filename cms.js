@@ -299,6 +299,53 @@ class KMCMS {
     return this.applyToPage();
   }
 
+  async fetchPublishedContent() {
+    if (typeof window === 'undefined' || typeof fetch === 'undefined') return null;
+    try {
+      const res = await fetch(`content.json?_t=${Date.now()}`);
+      if (!res.ok) return null;
+      const published = await res.json();
+      if (!published || typeof published !== 'object') return null;
+
+      const localSaved = localStorage.getItem(KM_CMS_STORAGE_KEY);
+      const localUpdatedAt = localStorage.getItem(KM_CMS_SYNC_KEY);
+
+      const publishedTimestamp = published.updatedAt ? new Date(published.updatedAt).getTime() : 0;
+      const localTimestamp = localUpdatedAt ? Number(localUpdatedAt) : 0;
+
+      // Se os dados publicados no GitHub forem mais recentes ou se o visitante não tiver nada local:
+      if (!localSaved || (publishedTimestamp && publishedTimestamp > localTimestamp)) {
+        this.data = deepMerge(defaultCMSContent, published);
+        localStorage.setItem(KM_CMS_STORAGE_KEY, JSON.stringify(this.data));
+        if (publishedTimestamp) {
+          localStorage.setItem(KM_CMS_SYNC_KEY, String(publishedTimestamp));
+        }
+        await this.applyToPage();
+      }
+      return published;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  exportJSON() {
+    return JSON.stringify(this.data, null, 2);
+  }
+
+  importJSON(jsonString) {
+    try {
+      const parsed = JSON.parse(jsonString);
+      if (parsed && typeof parsed === 'object') {
+        this.saveContent(parsed);
+        this.applyToPage();
+        return true;
+      }
+    } catch (err) {
+      console.error('Falha ao importar JSON:', err);
+    }
+    return false;
+  }
+
   async applyToPage() {
     const data = this.data;
     if (!data) return;
@@ -625,12 +672,15 @@ if (typeof window !== 'undefined') {
 
 // Execução ao carregar no browser
 if (typeof document !== 'undefined') {
-  if (document.readyState === 'interactive' || document.readyState === 'complete') {
+  const boot = () => {
     kmCMS?.applyToPage();
+    kmCMS?.fetchPublishedContent();
+  };
+
+  if (document.readyState === 'interactive' || document.readyState === 'complete') {
+    boot();
   } else {
-    document.addEventListener('DOMContentLoaded', () => {
-      kmCMS?.applyToPage();
-    });
+    document.addEventListener('DOMContentLoaded', boot);
   }
 }
 

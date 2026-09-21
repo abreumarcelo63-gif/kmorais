@@ -5,6 +5,40 @@
 
 const ADMIN_PASSWORD_HASH = '@marcelo123';
 const AUTH_SESSION_KEY = 'km_admin_authenticated';
+const KM_GH_CONFIG_KEY = 'km_github_sync_config_v1';
+
+function utf8ToBase64(str) {
+  return btoa(unescape(encodeURIComponent(str)));
+}
+
+function base64ToUtf8(str) {
+  return decodeURIComponent(escape(atob(str)));
+}
+
+function getGitHubConfig() {
+  const defaults = {
+    token: '',
+    repo: 'abreumarcelo63-gif/kmorais',
+    branch: 'main',
+    path: 'content.json'
+  };
+  try {
+    const saved = localStorage.getItem(KM_GH_CONFIG_KEY);
+    if (saved) {
+      return Object.assign({}, defaults, JSON.parse(saved));
+    }
+  } catch (e) {}
+  return defaults;
+}
+
+function saveGitHubConfig(cfg) {
+  try {
+    localStorage.setItem(KM_GH_CONFIG_KEY, JSON.stringify(cfg));
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
 
 function normalizeVideoUrl(url) {
   if (!url || typeof url !== 'string') return '';
@@ -142,6 +176,8 @@ class KMAdminPanel {
     this.setupMediaButtons();
     this.setupToolbar();
     this.setupMediaModal();
+    this.setupGitHubSync();
+    this.setupJSONBackup();
   }
 
   setupEditableElements() {
@@ -879,7 +915,7 @@ class KMAdminPanel {
     this.mediaModal.classList.add('is-open');
   }
 
-  saveAllChanges() {
+  extractCurrentContent() {
     // 1. Extrai todos os dados atuais do DOM
     const heroEyebrow = document.querySelector('.hero-copy .eyebrow')?.innerText.replace('✦', '').trim();
     const heroTitle = document.querySelector('#hero-title')?.innerHTML.trim();
@@ -986,7 +1022,8 @@ class KMAdminPanel {
     const contactWa = document.querySelector('a[href*="wa.me"]')?.textContent.trim();
     const contactWaLink = document.querySelector('a[href*="wa.me"]')?.getAttribute('href');
 
-    const contentToSave = {
+    return {
+      updatedAt: new Date().toISOString(),
       hero: {
         eyebrow: heroEyebrow,
         title: heroTitle,
@@ -1016,6 +1053,10 @@ class KMAdminPanel {
         whatsappLink: contactWaLink
       }
     };
+  }
+
+  saveAllChanges() {
+    const contentToSave = this.extractCurrentContent();
 
     // Salva via motor CMS
     const savedOk = kmCMS.saveContent(contentToSave);
@@ -1028,9 +1069,278 @@ class KMAdminPanel {
         }
       } catch (err) {}
 
-      this.showToast('✓ Alterações salvas! A página principal já foi atualizada.');
+      this.showToast('✓ Rascunho salvo no navegador! Para disponibilizar para todos, clique em "Publicar no GitHub".');
     } else {
       alert('Atenção: Não foi possível salvar tudo no armazenamento local do navegador devido ao limite de espaço (cota excedida). Experimente usar links diretos de fotos ou imagens menores.');
+    }
+  }
+
+  setupGitHubSync() {
+    const ghModal = document.getElementById('admin-github-modal');
+    const ghConfigBtn = document.getElementById('admin-gh-config-btn');
+    const ghModalClose = document.getElementById('admin-gh-modal-close');
+    const ghPublishBtn = document.getElementById('admin-publish-gh-btn');
+    const ghTokenInput = document.getElementById('admin-gh-token');
+    const ghRepoInput = document.getElementById('admin-gh-repo');
+    const ghBranchInput = document.getElementById('admin-gh-branch');
+    const ghPathInput = document.getElementById('admin-gh-path');
+    const ghStatusEl = document.getElementById('admin-gh-status');
+    const ghTestBtn = document.getElementById('admin-gh-test-btn');
+    const ghSaveConfigBtn = document.getElementById('admin-gh-save-config-btn');
+    const ghTokenToggle = document.getElementById('admin-gh-token-toggle');
+
+    const openModal = () => {
+      const cfg = getGitHubConfig();
+      if (ghTokenInput) ghTokenInput.value = cfg.token || '';
+      if (ghRepoInput) ghRepoInput.value = cfg.repo || 'abreumarcelo63-gif/kmorais';
+      if (ghBranchInput) ghBranchInput.value = cfg.branch || 'main';
+      if (ghPathInput) ghPathInput.value = cfg.path || 'content.json';
+      if (ghStatusEl) {
+        ghStatusEl.className = 'admin-gh-status is-hidden';
+        ghStatusEl.textContent = '';
+      }
+      ghModal?.classList.remove('is-hidden');
+    };
+
+    const closeModal = () => {
+      ghModal?.classList.add('is-hidden');
+    };
+
+    if (ghConfigBtn) ghConfigBtn.addEventListener('click', openModal);
+    if (ghModalClose) ghModalClose.addEventListener('click', closeModal);
+    if (ghModal) {
+      ghModal.addEventListener('click', (e) => {
+        if (e.target === ghModal) closeModal();
+      });
+    }
+
+    if (ghTokenToggle && ghTokenInput) {
+      ghTokenToggle.addEventListener('click', () => {
+        if (ghTokenInput.type === 'password') {
+          ghTokenInput.type = 'text';
+          ghTokenToggle.textContent = '🔒';
+        } else {
+          ghTokenInput.type = 'password';
+          ghTokenToggle.textContent = '👁';
+        }
+      });
+    }
+
+    // Salvar configuração
+    if (ghSaveConfigBtn) {
+      ghSaveConfigBtn.addEventListener('click', () => {
+        const token = ghTokenInput?.value.trim() || '';
+        const repo = ghRepoInput?.value.trim() || 'abreumarcelo63-gif/kmorais';
+        const branch = ghBranchInput?.value.trim() || 'main';
+        const path = ghPathInput?.value.trim() || 'content.json';
+
+        if (!token) {
+          alert('Por favor, informe o token de acesso do GitHub (PAT).');
+          return;
+        }
+
+        saveGitHubConfig({ token, repo, branch, path });
+        this.showToast('✓ Configuração do GitHub salva com sucesso!');
+        closeModal();
+      });
+    }
+
+    // Testar Conexão
+    if (ghTestBtn) {
+      ghTestBtn.addEventListener('click', async () => {
+        const token = ghTokenInput?.value.trim();
+        const repo = ghRepoInput?.value.trim();
+
+        if (!token) {
+          if (ghStatusEl) {
+            ghStatusEl.className = 'admin-gh-status is-error';
+            ghStatusEl.textContent = '❌ Por favor, preencha o campo do Token antes de testar.';
+          }
+          return;
+        }
+
+        if (ghStatusEl) {
+          ghStatusEl.className = 'admin-gh-status is-loading';
+          ghStatusEl.textContent = '⏳ Testando conexão com a API do GitHub...';
+        }
+
+        try {
+          const res = await fetch(`https://api.github.com/repos/${repo}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Accept': 'application/vnd.github+json',
+              'X-GitHub-Api-Version': '2022-11-28'
+            }
+          });
+
+          if (res.ok) {
+            const repoData = await res.json();
+            const hasPush = repoData.permissions?.push !== false;
+            ghStatusEl.className = 'admin-gh-status is-success';
+            ghStatusEl.textContent = `✓ Conexão bem-sucedida com "${repoData.full_name}"! ${hasPush ? 'Permissão de escrita confirmada.' : 'Atenção: verifique se o token tem permissão de escrita.'}`;
+          } else if (res.status === 401) {
+            ghStatusEl.className = 'admin-gh-status is-error';
+            ghStatusEl.textContent = '❌ Erro 401: Token inválido ou expirado. Verifique o código inserido.';
+          } else if (res.status === 404) {
+            ghStatusEl.className = 'admin-gh-status is-error';
+            ghStatusEl.textContent = `❌ Erro 404: Repositório "${repo}" não encontrado ou token sem acesso.`;
+          } else {
+            ghStatusEl.className = 'admin-gh-status is-error';
+            ghStatusEl.textContent = `❌ Erro HTTP ${res.status}: ${res.statusText}`;
+          }
+        } catch (err) {
+          ghStatusEl.className = 'admin-gh-status is-error';
+          ghStatusEl.textContent = `❌ Falha na requisição: ${err.message}`;
+        }
+      });
+    }
+
+    // Publicar no GitHub
+    if (ghPublishBtn) {
+      ghPublishBtn.addEventListener('click', async () => {
+        const cfg = getGitHubConfig();
+        if (!cfg.token) {
+          openModal();
+          return;
+        }
+
+        const originalText = ghPublishBtn.innerHTML;
+        ghPublishBtn.classList.add('is-loading');
+        ghPublishBtn.disabled = true;
+        ghPublishBtn.innerHTML = '⏳ Publicando...';
+
+        try {
+          const content = this.extractCurrentContent();
+          content.updatedAt = new Date().toISOString();
+
+          // 1. Obter SHA atual do content.json no GitHub (se existir)
+          let currentSha = null;
+          try {
+            const checkRes = await fetch(`https://api.github.com/repos/${cfg.repo}/contents/${cfg.path}?ref=${cfg.branch}&_t=${Date.now()}`, {
+              headers: {
+                'Authorization': `Bearer ${cfg.token}`,
+                'Accept': 'application/vnd.github+json',
+                'X-GitHub-Api-Version': '2022-11-28'
+              }
+            });
+            if (checkRes.ok) {
+              const fileData = await checkRes.json();
+              currentSha = fileData.sha;
+            } else if (checkRes.status === 401) {
+              throw new Error('AUTH_EXPIRED');
+            }
+          } catch (err) {
+            if (err.message === 'AUTH_EXPIRED') throw err;
+          }
+
+          // 2. Converte o JSON para Base64 UTF-8
+          const jsonString = JSON.stringify(content, null, 2);
+          const base64Content = utf8ToBase64(jsonString);
+
+          // 3. Executa o PUT no GitHub Contents API
+          const payload = {
+            message: `cms: atualiza conteudo do site via painel administrativo [${new Date().toLocaleTimeString('pt-BR')}]`,
+            content: base64Content,
+            branch: cfg.branch || 'main'
+          };
+          if (currentSha) {
+            payload.sha = currentSha;
+          }
+
+          const putRes = await fetch(`https://api.github.com/repos/${cfg.repo}/contents/${cfg.path}`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${cfg.token}`,
+              'Accept': 'application/vnd.github+json',
+              'Content-Type': 'application/json',
+              'X-GitHub-Api-Version': '2022-11-28'
+            },
+            body: JSON.stringify(payload)
+          });
+
+          if (putRes.ok) {
+            // Salva também localmente para manter sincronizado
+            kmCMS.saveContent(content);
+
+            this.showToast('🚀 Sucesso! Publicado no GitHub. O site oficial para todos os visitantes já está atualizado!');
+          } else {
+            const errorJson = await putRes.json().catch(() => ({}));
+            if (putRes.status === 401) {
+              alert('Token do GitHub inválido ou expirado. Por favor, reconfigure seu token.');
+              openModal();
+            } else if (putRes.status === 409) {
+              alert('Houve um conflito de versão (alguém publicou alterações recentemente). Tente clicar em Publicar novamente.');
+            } else {
+              alert(`Erro ao publicar no GitHub (${putRes.status}): ${errorJson.message || putRes.statusText}`);
+            }
+          }
+        } catch (err) {
+          if (err.message === 'AUTH_EXPIRED') {
+            alert('Token do GitHub expirado ou inválido. Por favor, reconfigure o token.');
+            openModal();
+          } else {
+            alert(`Falha ao comunicar com o GitHub: ${err.message}`);
+          }
+        } finally {
+          ghPublishBtn.classList.remove('is-loading');
+          ghPublishBtn.disabled = false;
+          ghPublishBtn.innerHTML = originalText;
+        }
+      });
+    }
+  }
+
+  setupJSONBackup() {
+    const exportBtn = document.getElementById('admin-export-btn');
+    const importBtn = document.getElementById('admin-import-btn');
+    const importFileInput = document.getElementById('admin-import-file');
+
+    if (exportBtn) {
+      exportBtn.addEventListener('click', () => {
+        const content = this.extractCurrentContent();
+        content.updatedAt = new Date().toISOString();
+        const jsonStr = JSON.stringify(content, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `kmorais-content-${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        this.showToast('📥 Arquivo JSON de conteúdo baixado com sucesso!');
+      });
+    }
+
+    if (importBtn && importFileInput) {
+      importBtn.addEventListener('click', () => {
+        importFileInput.click();
+      });
+
+      importFileInput.addEventListener('change', (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const text = event.target.result;
+            const ok = kmCMS.importJSON(text);
+            if (ok) {
+              this.showToast('✓ Conteúdo importado com sucesso!');
+              setTimeout(() => location.reload(), 1000);
+            } else {
+              alert('Arquivo JSON inválido. Verifique a formatação do arquivo.');
+            }
+          } catch (err) {
+            alert('Erro ao ler o arquivo JSON selecionado.');
+          } finally {
+            importFileInput.value = '';
+          }
+        };
+        reader.readAsText(file);
+      });
     }
   }
 

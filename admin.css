@@ -664,3 +664,198 @@ body.is-admin-mode .site-header {
   border: 1px solid var(--lime);
 }
 
+/* === BOTÕES E MODAL DE PUBLICAÇÃO NO GITHUB ======================== */
+
+.admin-btn-publish {
+  background: var(--lime);
+  color: var(--ink);
+  font-weight: 800;
+  box-shadow: 0 0 14px rgba(214, 238, 130, 0.35);
+  border: 1px solid #c8e668;
+}
+
+.admin-btn-publish:hover {
+  background: #e2ff94;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 18px rgba(214, 238, 130, 0.55);
+}
+
+.admin-btn-gh-config {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e0e5de;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.admin-btn-gh-config:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--lime);
+  border-color: var(--lime);
+}
+
+.admin-btn-secondary {
+  background: transparent;
+  color: #cfd8d2;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.admin-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.admin-github-modal-box {
+  max-width: 580px;
+  text-align: left;
+}
+
+.admin-gh-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(214, 238, 130, 0.12);
+  color: var(--lime);
+  font: 700 10px var(--mono);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 5px 10px;
+  border-radius: 20px;
+  margin-bottom: 12px;
+}
+
+.admin-gh-badge span {
+  font-size: 8px;
+  color: var(--lime);
+}
+
+.admin-gh-desc {
+  font-size: 13px;
+  color: #a4b3a9;
+  line-height: 1.55;
+  margin: 0 0 20px;
+}
+
+.admin-gh-desc code {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--lime);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.admin-input-with-toggle {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.admin-input-with-toggle input {
+  width: 100%;
+  padding-right: 44px;
+}
+
+.admin-toggle-visibility-btn {
+  position: absolute;
+  right: 10px;
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px;
+  transition: color 0.2s;
+}
+
+.admin-toggle-visibility-btn:hover {
+  color: #ffffff;
+}
+
+.admin-gh-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 540px) {
+  .admin-gh-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.admin-gh-status {
+  padding: 12px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 14px 0;
+  font-family: var(--mono);
+}
+
+.admin-gh-status.is-hidden {
+  display: none;
+}
+
+.admin-gh-status.is-success {
+  display: block;
+  background: rgba(214, 238, 130, 0.15);
+  color: var(--lime);
+  border: 1px solid var(--lime);
+}
+
+.admin-gh-status.is-error {
+  display: block;
+  background: rgba(235, 110, 75, 0.15);
+  color: var(--coral);
+  border: 1px solid var(--coral);
+}
+
+.admin-gh-status.is-loading {
+  display: block;
+  background: rgba(255, 255, 255, 0.08);
+  color: #e0e5de;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.admin-gh-instructions {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 14px 18px;
+  margin: 18px 0;
+}
+
+.admin-gh-instructions h4 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  font-family: var(--mono);
+  color: var(--paper);
+  margin: 0 0 10px;
+}
+
+.admin-gh-instructions ol {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 12px;
+  color: #9cb1a4;
+  line-height: 1.6;
+}
+
+.admin-gh-instructions a {
+  color: var(--lime);
+  text-decoration: underline;
+}
+
+.admin-gh-instructions code {
+  color: var(--coral);
+  font-family: var(--mono);
+}
+
+.admin-btn.is-loading {
+  opacity: 0.75;
+  pointer-events: none;
+  position: relative;
+}
+
+
