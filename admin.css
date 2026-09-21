@@ -257,8 +257,10 @@ body.is-admin-mode .site-header {
 }
 
 /* Botão flutuante para editar mídias (vídeo/capa/foto) */
-.admin-media-wrapper {
-  position: relative;
+.admin-media-wrapper,
+.real-case,
+.photo-card {
+  position: relative !important;
 }
 
 .admin-edit-media-btn {
@@ -425,3 +427,4 @@ body.is-admin-mode .site-header {
   color: var(--lime);
   font-size: 16px;
 }
+

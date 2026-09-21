@@ -30,7 +30,47 @@ const defaultCMSContent = {
     email: "marketing.kellymorais@gmail.com",
     whatsapp: "+55 11 95636-7834",
     whatsappLink: "https://wa.me/5511956367834"
-  }
+  },
+  realCases: [
+    {
+      cover: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&q=80&auto=format&fit=crop",
+      link: "https://www.instagram.com/kemoraiso/reel/Dc4TsgNhvXy/",
+      tag: "01 / Instagram Reel",
+      title: "Conteudo com cara de rotina",
+      desc: "Para aproximar produto e audiencia sem perder naturalidade."
+    },
+    {
+      cover: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=600&q=80&auto=format&fit=crop",
+      link: "https://www.instagram.com/kemoraiso/reel/DdFP3quBgB9/",
+      tag: "02 / Instagram Reel",
+      title: "Creator + CLT",
+      desc: "A vida real como contexto para uma historia que conecta."
+    },
+    {
+      cover: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=600&q=80&auto=format&fit=crop",
+      link: "https://www.instagram.com/foxcyclesoficial/reel/DUB0JGkkkR_/",
+      tag: "03 / Collab de marca",
+      title: "Conteudo para negocio real",
+      desc: "Quando a creator entra na conversa oficial da marca."
+    },
+    {
+      cover: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=600&q=80&auto=format&fit=crop",
+      link: "https://www.tiktok.com/@kellymoraiso",
+      tag: "04 / TikTok",
+      title: "Rotina, maternidade e dicas",
+      desc: "31K pessoas acompanhando conteudo que informa e acolhe."
+    }
+  ],
+  instagramPosts: [
+    { image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&q=80&auto=format&fit=crop', link: 'https://www.instagram.com/kemoraiso/reel/Dc4TsgNhvXy/', label: 'post recente / 01' },
+    { image: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=600&q=80&auto=format&fit=crop', link: 'https://www.instagram.com/kemoraiso/reel/DdFP3quBgB9/', label: 'post recente / 02' },
+    { image: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=600&q=80&auto=format&fit=crop', link: 'https://www.instagram.com/kemoraiso/reel/DctXke_BpJF/', label: 'post recente / 03' },
+    { image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&q=80&auto=format&fit=crop', link: 'https://www.instagram.com/kemoraiso/reel/Dbto7oNho3o/', label: 'post recente / 04' },
+    { image: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=600&q=80&auto=format&fit=crop', link: 'https://www.instagram.com/kemoraiso/reel/Dav1BwnB8S4/', label: 'post recente / 05' },
+    { image: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=600&q=80&auto=format&fit=crop', link: 'https://www.instagram.com/kemoraiso/reel/DcRrZvuh33B/', label: 'post recente / 06' },
+    { image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600&q=80&auto=format&fit=crop', link: 'https://www.instagram.com/kemoraiso/reel/DY65T1vu4bn/', label: 'post recente / 07' },
+    { image: 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=600&q=80&auto=format&fit=crop', link: 'https://www.instagram.com/kemoraiso/reel/Daan3KYuQgw/', label: 'post recente / 08' }
+  ]
 };
 
 class KMCMS {
@@ -142,6 +182,45 @@ class KMCMS {
       });
     }
 
+    // 3.5. Cases Reais ("Cases que saem da tela")
+    if (data.realCases && Array.isArray(data.realCases)) {
+      const cases = document.querySelectorAll('.real-case');
+      data.realCases.forEach((item, idx) => {
+        if (!cases[idx]) return;
+        const el = cases[idx];
+        const cover = el.querySelector('.real-case-cover');
+        const tag = el.querySelector('.real-case-content span');
+        const title = el.querySelector('.real-case-content h3');
+        const desc = el.querySelector('.real-case-content p');
+
+        if (item.link) el.href = item.link;
+        if (cover && item.cover) {
+          cover.style.backgroundImage = `url("${item.cover}")`;
+          el.dataset.coverUrl = item.cover;
+        }
+        if (tag && item.tag) tag.innerHTML = item.tag;
+        if (title && item.title) title.innerHTML = item.title;
+        if (desc && item.desc) desc.innerHTML = item.desc;
+      });
+    }
+
+    // 3.6. Últimos Posts do Instagram ("O que está no ar agora")
+    if (data.instagramPosts && Array.isArray(data.instagramPosts)) {
+      const photoCards = document.querySelectorAll('.photo-card');
+      data.instagramPosts.forEach((post, idx) => {
+        if (!photoCards[idx]) return;
+        const card = photoCards[idx];
+        const img = card.querySelector('img');
+        const span = card.querySelector('span');
+
+        if (post.link) card.href = post.link;
+        if (img && post.image) img.src = post.image;
+        if (span && post.label) {
+          span.innerHTML = `${post.label} <b>&#8599;</b>`;
+        }
+      });
+    }
+
     // 4. Sobre
     const aboutTitle = document.querySelector('#about-title');
     if (aboutTitle && data.about?.title) {
@@ -203,3 +282,4 @@ if ('BroadcastChannel' in window) {
 if (document.readyState === 'interactive' || document.readyState === 'complete') {
   kmCMS.applyToPage();
 }
+

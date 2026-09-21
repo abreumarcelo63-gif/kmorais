@@ -199,6 +199,106 @@ class KMAdminPanel {
       });
       aboutImageWrap.appendChild(btn);
     }
+
+    // 4. Cases Reais ("Cases que saem da tela.")
+    document.querySelectorAll('.real-case').forEach((caseEl, index) => {
+      if (caseEl.querySelector('.admin-edit-media-btn')) return;
+      caseEl.style.position = 'relative';
+
+      // Impede que o clique no link leve ao Instagram enquanto edita
+      caseEl.addEventListener('click', (e) => {
+        if (!e.target.closest('.admin-edit-media-btn')) {
+          e.preventDefault();
+        }
+      });
+
+      const btn = document.createElement('button');
+      btn.className = 'admin-edit-media-btn';
+      btn.innerHTML = '✏ Editar Capa e Link';
+      btn.type = 'button';
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+
+        const cover = caseEl.querySelector('.real-case-cover');
+        let currentCover = caseEl.dataset.coverUrl || '';
+        if (!currentCover && cover) {
+          const match = cover.style.backgroundImage.match(/url\(['"]?(.*?)['"]?\)/);
+          if (match) currentCover = match[1];
+        }
+        const currentLink = caseEl.getAttribute('href') || '';
+        const currentTag = caseEl.querySelector('.real-case-content span')?.textContent.trim() || '';
+
+        this.openMediaModal({
+          title: `Editar Case #${index + 1} ("Cases que saem da tela")`,
+          type: 'case',
+          posterUrl: currentCover,
+          linkUrl: currentLink,
+          label: currentTag,
+          onSave: (data) => {
+            if (cover && data.posterUrl) {
+              cover.style.backgroundImage = `url("${data.posterUrl}")`;
+              caseEl.dataset.coverUrl = data.posterUrl;
+            }
+            if (data.linkUrl) {
+              caseEl.href = data.linkUrl;
+            }
+            const tagEl = caseEl.querySelector('.real-case-content span');
+            if (tagEl && data.label) {
+              tagEl.textContent = data.label;
+            }
+          }
+        });
+      });
+      caseEl.appendChild(btn);
+    });
+
+    // 5. Últimos Posts do Instagram ("O que está no ar agora.")
+    document.querySelectorAll('.photo-card').forEach((photoEl, index) => {
+      if (photoEl.querySelector('.admin-edit-media-btn')) return;
+      photoEl.style.position = 'relative';
+
+      photoEl.addEventListener('click', (e) => {
+        if (!e.target.closest('.admin-edit-media-btn')) {
+          e.preventDefault();
+        }
+      });
+
+      const btn = document.createElement('button');
+      btn.className = 'admin-edit-media-btn';
+      btn.innerHTML = '✏ Trocar Foto e Link';
+      btn.type = 'button';
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+
+        const img = photoEl.querySelector('img');
+        const span = photoEl.querySelector('span');
+        const currentImg = img ? img.src : '';
+        const currentLink = photoEl.getAttribute('href') || '';
+        const currentLabel = span ? span.innerText.replace('↗', '').trim() : '';
+
+        this.openMediaModal({
+          title: `Editar Post #${index + 1} ("O que está no ar agora")`,
+          type: 'instagram',
+          posterUrl: currentImg,
+          linkUrl: currentLink,
+          label: currentLabel,
+          onSave: (data) => {
+            if (img && data.posterUrl) {
+              img.src = data.posterUrl;
+            }
+            if (data.linkUrl) {
+              photoEl.href = data.linkUrl;
+            }
+            if (span && data.label) {
+              span.innerHTML = `${data.label} <b>&#8599;</b>`;
+            }
+          }
+        });
+      });
+      photoEl.appendChild(btn);
+    });
   }
 
   setupToolbar() {
@@ -253,9 +353,10 @@ class KMAdminPanel {
         const videoUrl = document.getElementById('admin-modal-video-url')?.value.trim();
         const posterUrl = document.getElementById('admin-modal-poster-url')?.value.trim();
         const label = document.getElementById('admin-modal-label')?.value.trim();
+        const linkUrl = document.getElementById('admin-modal-link-url')?.value.trim();
 
         if (this.currentEditingMedia.onSave) {
-          this.currentEditingMedia.onSave({ videoUrl, posterUrl, label });
+          this.currentEditingMedia.onSave({ videoUrl, posterUrl, label, linkUrl });
         }
 
         closeModal();
@@ -264,7 +365,7 @@ class KMAdminPanel {
     }
   }
 
-  openMediaModal({ title, type, videoUrl = '', posterUrl = '', label = '', onSave }) {
+  openMediaModal({ title, type, videoUrl = '', posterUrl = '', label = '', linkUrl = '', onSave }) {
     if (!this.mediaModal) return;
 
     this.currentEditingMedia = { type, onSave };
@@ -272,22 +373,31 @@ class KMAdminPanel {
     const modalTitle = document.getElementById('admin-modal-title');
     const videoGroup = document.getElementById('admin-modal-video-group');
     const labelGroup = document.getElementById('admin-modal-label-group');
+    const linkGroup = document.getElementById('admin-modal-link-group');
 
     const videoInput = document.getElementById('admin-modal-video-url');
     const posterInput = document.getElementById('admin-modal-poster-url');
     const labelInput = document.getElementById('admin-modal-label');
+    const linkInput = document.getElementById('admin-modal-link-url');
 
     if (modalTitle) modalTitle.textContent = title || 'Editar Mídia';
     if (videoInput) videoInput.value = videoUrl;
     if (posterInput) posterInput.value = posterUrl;
     if (labelInput) labelInput.value = label;
+    if (linkInput) linkInput.value = linkUrl;
 
-    // Ajusta campos dependendo se é imagem ou vídeo
-    if (type === 'image') {
+    // Ajusta campos conforme o tipo de mídia
+    if (type === 'case' || type === 'instagram') {
       if (videoGroup) videoGroup.style.display = 'none';
+      if (linkGroup) linkGroup.style.display = 'block';
+      if (labelGroup) labelGroup.style.display = 'block';
+    } else if (type === 'image') {
+      if (videoGroup) videoGroup.style.display = 'none';
+      if (linkGroup) linkGroup.style.display = 'none';
       if (labelGroup) labelGroup.style.display = 'none';
     } else {
       if (videoGroup) videoGroup.style.display = 'block';
+      if (linkGroup) linkGroup.style.display = 'none';
       if (labelGroup) labelGroup.style.display = type === 'video' ? 'block' : 'none';
     }
 
@@ -322,6 +432,42 @@ class KMAdminPanel {
       });
     });
 
+    // Cases Reais ("Cases que saem da tela.")
+    const realCases = [];
+    document.querySelectorAll('.real-case').forEach((caseEl) => {
+      const cover = caseEl.querySelector('.real-case-cover');
+      let bgUrl = caseEl.dataset.coverUrl || '';
+      if (!bgUrl && cover) {
+        const match = cover.style.backgroundImage.match(/url\(['"]?(.*?)['"]?\)/);
+        if (match) bgUrl = match[1];
+      }
+      const tag = caseEl.querySelector('.real-case-content span')?.innerHTML.trim();
+      const title = caseEl.querySelector('.real-case-content h3')?.innerHTML.trim();
+      const desc = caseEl.querySelector('.real-case-content p')?.innerHTML.trim();
+
+      realCases.push({
+        cover: bgUrl,
+        link: caseEl.getAttribute('href') || '',
+        tag: tag || '',
+        title: title || '',
+        desc: desc || ''
+      });
+    });
+
+    // Últimos Posts do Instagram ("O que está no ar agora.")
+    const instagramPosts = [];
+    document.querySelectorAll('.photo-card').forEach((card) => {
+      const img = card.querySelector('img');
+      const span = card.querySelector('span');
+      const label = span ? span.innerText.replace('↗', '').trim() : '';
+
+      instagramPosts.push({
+        image: img ? img.src : '',
+        link: card.getAttribute('href') || '',
+        label: label || ''
+      });
+    });
+
     // Sobre
     const aboutTitle = document.querySelector('#about-title')?.innerHTML.trim();
     const aboutBio = document.querySelector('.about-content p:nth-of-type(2)')?.innerHTML.trim();
@@ -346,6 +492,8 @@ class KMAdminPanel {
       portfolioTitle,
       portfolioIntro,
       portfolioVideos,
+      realCases,
+      instagramPosts,
       about: {
         title: aboutTitle,
         bio: aboutBio,
@@ -388,3 +536,4 @@ class KMAdminPanel {
 document.addEventListener('DOMContentLoaded', () => {
   new KMAdminPanel();
 });
+
