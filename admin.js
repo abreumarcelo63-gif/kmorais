@@ -626,6 +626,10 @@ class KMAdminPanel {
       }
     };
 
+    const closeBtn = this.mediaModal.querySelector('.admin-modal-close');
+    const cancelBtn = document.getElementById('admin-modal-cancel');
+    const saveBtn = document.getElementById('admin-modal-save');
+
     if (closeBtn) closeBtn.addEventListener('click', closeModal);
     if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
 
@@ -636,15 +640,18 @@ class KMAdminPanel {
     // Abas (Link vs Subir do PC)
     const tabButtons = this.mediaModal.querySelectorAll('.admin-tab-btn');
     tabButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         const group = btn.closest('.admin-modal-group');
+        if (!group) return;
         const tabName = btn.dataset.tab; // 'url' ou 'file'
         group.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('is-active'));
         btn.classList.add('is-active');
 
         group.querySelectorAll('.admin-tab-content').forEach(c => {
           c.classList.remove('is-active');
-          if (c.dataset.tabContent.endsWith(tabName)) {
+          if (c.dataset.tabContent && c.dataset.tabContent.endsWith(tabName)) {
             c.classList.add('is-active');
           }
         });
@@ -684,38 +691,49 @@ class KMAdminPanel {
     });
 
     if (saveBtn) {
-      saveBtn.addEventListener('click', async () => {
+      saveBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
         if (!this.currentEditingMedia) return;
         saveBtn.disabled = true;
         saveBtn.textContent = 'Processando...';
 
         try {
+          const videoGroup = document.getElementById('admin-modal-video-group');
+          const posterGroup = document.getElementById('admin-modal-poster-group');
+          const isVideoFileTab = videoGroup?.querySelector('.admin-tab-btn[data-tab="file"]')?.classList.contains('is-active');
+          const isPosterFileTab = posterGroup?.querySelector('.admin-tab-btn[data-tab="file"]')?.classList.contains('is-active');
+
           let rawVideoUrl = document.getElementById('admin-modal-video-url')?.value.trim() || '';
           let finalVideoUrl = normalizeVideoUrl(rawVideoUrl);
           let finalVideoId = null;
 
-          if (this.selectedVideoFile) {
+          if (isVideoFileTab && this.selectedVideoFile) {
             const mediaId = `idb:video_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
             await kmMediaStore.saveMedia(mediaId, this.selectedVideoFile, this.selectedVideoFile.type);
             finalVideoUrl = URL.createObjectURL(this.selectedVideoFile);
             finalVideoId = mediaId;
-          } else if (this.currentEditingMedia.currentVideoId && !finalVideoUrl) {
+          } else if (isVideoFileTab && this.currentEditingMedia.currentVideoId && !finalVideoUrl) {
             finalVideoId = this.currentEditingMedia.currentVideoId;
             finalVideoUrl = await kmMediaStore.resolveUrl(finalVideoId);
+          } else if (!isVideoFileTab) {
+            finalVideoId = null;
           }
 
-          let finalPosterUrl = document.getElementById('admin-modal-poster-url')?.value.trim();
+          let rawPosterUrl = document.getElementById('admin-modal-poster-url')?.value.trim() || '';
+          let finalPosterUrl = rawPosterUrl;
           let finalPosterId = null;
 
-          if (this.selectedPosterFile) {
+          if (isPosterFileTab && this.selectedPosterFile) {
             const mediaId = `idb:img_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
             await kmMediaStore.saveMedia(mediaId, this.selectedPosterFile, this.selectedPosterFile.type);
             const compressed = await compressImageFile(this.selectedPosterFile);
             finalPosterUrl = compressed || URL.createObjectURL(this.selectedPosterFile);
             finalPosterId = mediaId;
-          } else if (this.currentEditingMedia.currentPosterId && !finalPosterUrl) {
+          } else if (isPosterFileTab && this.currentEditingMedia.currentPosterId && !finalPosterUrl) {
             finalPosterId = this.currentEditingMedia.currentPosterId;
             finalPosterUrl = await kmMediaStore.resolveUrl(finalPosterId);
+          } else if (!isPosterFileTab) {
+            finalPosterId = null;
           }
 
           const label = document.getElementById('admin-modal-label')?.value.trim();
@@ -733,7 +751,7 @@ class KMAdminPanel {
           }
 
           closeModal();
-          this.showToast('Mídia atualizada no editor!');
+          this.showToast('✓ Mídia atualizada no card!');
         } catch (err) {
           console.error('Erro ao processar mídia:', err);
           alert('Houve um erro ao processar a mídia. Tente novamente.');
@@ -754,6 +772,12 @@ class KMAdminPanel {
     const removeBtn = document.getElementById(removeId);
 
     if (!dropzone || !fileInput) return null;
+
+    dropzone.addEventListener('click', (e) => {
+      if (e.target !== fileInput && !e.target.closest('.file-remove-btn')) {
+        fileInput.click();
+      }
+    });
 
     ['dragenter', 'dragover'].forEach(eventName => {
       dropzone.addEventListener(eventName, (e) => {
