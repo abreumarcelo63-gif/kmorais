@@ -555,14 +555,64 @@
         <button type="button" class="admin-modal-close" aria-label="Fechar modal">&times;</button>
       </div>
       <div class="admin-modal-group" id="admin-modal-video-group">
-        <label for="admin-modal-video-url">URL do Vídeo (MP4)</label>
-        <input type="url" id="admin-modal-video-url" placeholder="https://exemplo.com/video.mp4">
-        <small>Cole o link direto do arquivo MP4.</small>
+        <div class="admin-group-header">
+          <label>Vídeo do Card / Hero</label>
+          <div class="admin-tab-switch" data-tab-group="video">
+            <button type="button" class="admin-tab-btn is-active" data-tab="url">🔗 Link / URL</button>
+            <button type="button" class="admin-tab-btn" data-tab="file">📁 Subir do PC</button>
+          </div>
+        </div>
+        <div class="admin-tab-content is-active" data-tab-content="video-url">
+          <input type="url" id="admin-modal-video-url" placeholder="https://exemplo.com/video.mp4">
+          <small>Cole o link direto do arquivo MP4 da web.</small>
+        </div>
+        <div class="admin-tab-content" data-tab-content="video-file">
+          <div class="admin-file-dropzone" id="video-dropzone">
+            <input type="file" id="admin-modal-video-file" accept="video/mp4,video/webm,video/quicktime,video/*">
+            <div class="dropzone-empty" id="video-dropzone-empty">
+              <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+              </svg>
+              <span>Clique ou arraste o <strong>vídeo</strong> do seu PC</span>
+              <small>Suporta MP4, WebM ou MOV</small>
+            </div>
+            <div class="dropzone-selected is-hidden" id="video-dropzone-selected">
+              <span class="file-icon">🎬</span>
+              <span class="file-name" id="video-file-name"></span>
+              <button type="button" class="file-remove-btn" id="video-file-remove" title="Remover arquivo">&times;</button>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="admin-modal-group" id="admin-modal-poster-group">
-        <label for="admin-modal-poster-url">URL da Imagem de Capa / Foto</label>
-        <input type="url" id="admin-modal-poster-url" placeholder="https://images.unsplash.com/...">
-        <small>Cole o link da imagem que aparece na capa do card.</small>
+        <div class="admin-group-header">
+          <label id="admin-modal-poster-label">Imagem de Capa / Foto</label>
+          <div class="admin-tab-switch" data-tab-group="poster">
+            <button type="button" class="admin-tab-btn is-active" data-tab="url">🔗 Link / URL</button>
+            <button type="button" class="admin-tab-btn" data-tab="file">📁 Subir do PC</button>
+          </div>
+        </div>
+        <div class="admin-tab-content is-active" data-tab-content="poster-url">
+          <input type="url" id="admin-modal-poster-url" placeholder="https://images.unsplash.com/...">
+          <small>Cole o link da imagem que aparece na capa do card.</small>
+        </div>
+        <div class="admin-tab-content" data-tab-content="poster-file">
+          <div class="admin-file-dropzone" id="poster-dropzone">
+            <input type="file" id="admin-modal-poster-file" accept="image/jpeg,image/png,image/webp,image/gif,image/*">
+            <div class="dropzone-empty" id="poster-dropzone-empty">
+              <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+              </svg>
+              <span>Clique ou arraste a <strong>imagem</strong> do seu PC</span>
+              <small>Suporta JPG, PNG, WebP ou GIF</small>
+            </div>
+            <div class="dropzone-selected is-hidden" id="poster-dropzone-selected">
+              <span class="file-icon">🖼</span>
+              <span class="file-name" id="poster-file-name"></span>
+              <button type="button" class="file-remove-btn" id="poster-file-remove" title="Remover arquivo">&times;</button>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="admin-modal-group" id="admin-modal-label-group">
         <label for="admin-modal-label">Rótulo / Legenda do Card</label>

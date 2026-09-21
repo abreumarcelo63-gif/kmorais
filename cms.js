@@ -73,6 +73,92 @@ const defaultCMSContent = {
   ]
 };
 
+class KMMediaStore {
+  constructor() {
+    this.dbPromise = this.initDB();
+    this.blobUrlCache = new Map();
+  }
+
+  initDB() {
+    return new Promise((resolve) => {
+      if (typeof window === 'undefined' || !window.indexedDB) {
+        resolve(null);
+        return;
+      }
+      const req = indexedDB.open('kmorais_media_store', 1);
+      req.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains('media')) {
+          db.createObjectStore('media', { keyPath: 'id' });
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = (err) => {
+        console.warn('KMMediaStore: IndexedDB init failed', err);
+        resolve(null);
+      };
+    });
+  }
+
+  async saveMedia(id, blobOrFile, mimeType) {
+    const db = await this.dbPromise;
+    if (!db) return null;
+    return new Promise((resolve) => {
+      try {
+        const tx = db.transaction('media', 'readwrite');
+        const store = tx.objectStore('media');
+        store.put({ id, data: blobOrFile, type: mimeType, updated: Date.now() });
+        tx.oncomplete = () => resolve(id);
+        tx.onerror = (err) => {
+          console.error('KMMediaStore save error:', err);
+          resolve(null);
+        };
+      } catch (err) {
+        console.error('KMMediaStore tx error:', err);
+        resolve(null);
+      }
+    });
+  }
+
+  async getMedia(id) {
+    const db = await this.dbPromise;
+    if (!db) return null;
+    return new Promise((resolve) => {
+      try {
+        const tx = db.transaction('media', 'readonly');
+        const store = tx.objectStore('media');
+        const req = store.get(id);
+        req.onsuccess = () => resolve(req.result ? req.result.data : null);
+        req.onerror = () => resolve(null);
+      } catch (err) {
+        resolve(null);
+      }
+    });
+  }
+
+  async resolveUrl(urlOrId) {
+    if (!urlOrId) return '';
+    if (typeof urlOrId === 'string' && urlOrId.startsWith('idb:')) {
+      if (this.blobUrlCache.has(urlOrId)) {
+        return this.blobUrlCache.get(urlOrId);
+      }
+      const blob = await this.getMedia(urlOrId);
+      if (blob) {
+        const blobUrl = URL.createObjectURL(blob);
+        this.blobUrlCache.set(urlOrId, blobUrl);
+        return blobUrl;
+      }
+      return '';
+    }
+    return urlOrId;
+  }
+}
+
+const kmMediaStore = new KMMediaStore();
+if (typeof window !== 'undefined') {
+  window.kmMediaStore = kmMediaStore;
+}
+
 class KMCMS {
   constructor() {
     this.data = this.loadLocalContent();
@@ -106,7 +192,7 @@ class KMCMS {
     }
   }
 
-  applyToPage() {
+  async applyToPage() {
     const data = this.data;
     if (!data) return;
 
@@ -133,13 +219,20 @@ class KMCMS {
 
     const heroVideo = document.querySelector('.hero-frame video');
     if (heroVideo && data.hero?.video) {
+      const resolvedVideo = await kmMediaStore.resolveUrl(data.hero.video);
       const src = heroVideo.querySelector('source');
-      if (src && src.src !== data.hero.video) {
-        src.src = data.hero.video;
+      if (resolvedVideo && src && src.src !== resolvedVideo) {
+        src.src = resolvedVideo;
+        heroVideo.load();
+      } else if (resolvedVideo && !src && heroVideo.src !== resolvedVideo) {
+        heroVideo.src = resolvedVideo;
         heroVideo.load();
       }
-      if (data.hero?.poster && heroVideo.poster !== data.hero.poster) {
-        heroVideo.poster = data.hero.poster;
+      if (data.hero?.poster) {
+        const resolvedPoster = await kmMediaStore.resolveUrl(data.hero.poster);
+        if (resolvedPoster && heroVideo.poster !== resolvedPoster) {
+          heroVideo.poster = resolvedPoster;
+        }
       }
     }
 
@@ -162,31 +255,42 @@ class KMCMS {
     // 3. Vídeos do portfólio customizados
     if (data.portfolioVideos && Array.isArray(data.portfolioVideos)) {
       const cards = document.querySelectorAll('.video-card');
-      data.portfolioVideos.forEach((item, idx) => {
-        if (!cards[idx]) return;
+      for (let idx = 0; idx < data.portfolioVideos.length; idx++) {
+        const item = data.portfolioVideos[idx];
+        if (!cards[idx]) continue;
         const video = cards[idx].querySelector('video');
         const metaSpan = cards[idx].querySelector('.video-meta span:first-child');
         if (video) {
           const src = video.querySelector('source');
-          if (item.video && src && src.src !== item.video) {
-            src.src = item.video;
-            video.load();
+          if (item.video) {
+            const resolvedVideo = await kmMediaStore.resolveUrl(item.video);
+            if (resolvedVideo && src && src.src !== resolvedVideo) {
+              src.src = resolvedVideo;
+              video.load();
+            } else if (resolvedVideo && !src && video.src !== resolvedVideo) {
+              video.src = resolvedVideo;
+              video.load();
+            }
           }
-          if (item.poster && video.poster !== item.poster) {
-            video.poster = item.poster;
+          if (item.poster) {
+            const resolvedPoster = await kmMediaStore.resolveUrl(item.poster);
+            if (resolvedPoster && video.poster !== resolvedPoster) {
+              video.poster = resolvedPoster;
+            }
           }
         }
         if (metaSpan && item.label) {
           metaSpan.innerHTML = item.label;
         }
-      });
+      }
     }
 
     // 3.5. Cases Reais ("Cases que saem da tela")
     if (data.realCases && Array.isArray(data.realCases)) {
       const cases = document.querySelectorAll('.real-case');
-      data.realCases.forEach((item, idx) => {
-        if (!cases[idx]) return;
+      for (let idx = 0; idx < data.realCases.length; idx++) {
+        const item = data.realCases[idx];
+        if (!cases[idx]) continue;
         const el = cases[idx];
         const cover = el.querySelector('.real-case-cover');
         const tag = el.querySelector('.real-case-content span');
@@ -195,30 +299,37 @@ class KMCMS {
 
         if (item.link) el.href = item.link;
         if (cover && item.cover) {
-          cover.style.backgroundImage = `url("${item.cover}")`;
-          el.dataset.coverUrl = item.cover;
+          const resolvedCover = await kmMediaStore.resolveUrl(item.cover);
+          if (resolvedCover) {
+            cover.style.backgroundImage = `url("${resolvedCover}")`;
+            el.dataset.coverUrl = item.cover;
+          }
         }
         if (tag && item.tag) tag.innerHTML = item.tag;
         if (title && item.title) title.innerHTML = item.title;
         if (desc && item.desc) desc.innerHTML = item.desc;
-      });
+      }
     }
 
     // 3.6. Últimos Posts do Instagram ("O que está no ar agora")
     if (data.instagramPosts && Array.isArray(data.instagramPosts)) {
       const photoCards = document.querySelectorAll('.photo-card');
-      data.instagramPosts.forEach((post, idx) => {
-        if (!photoCards[idx]) return;
+      for (let idx = 0; idx < data.instagramPosts.length; idx++) {
+        const post = data.instagramPosts[idx];
+        if (!photoCards[idx]) continue;
         const card = photoCards[idx];
         const img = card.querySelector('img');
         const span = card.querySelector('span');
 
         if (post.link) card.href = post.link;
-        if (img && post.image) img.src = post.image;
+        if (img && post.image) {
+          const resolvedImg = await kmMediaStore.resolveUrl(post.image);
+          if (resolvedImg) img.src = resolvedImg;
+        }
         if (span && post.label) {
           span.innerHTML = `${post.label} <b>&#8599;</b>`;
         }
-      });
+      }
     }
 
     // 4. Sobre
@@ -234,7 +345,8 @@ class KMCMS {
 
     const aboutImg = document.querySelector('.about-image img');
     if (aboutImg && data.about?.image) {
-      aboutImg.src = data.about.image;
+      const resolvedImg = await kmMediaStore.resolveUrl(data.about.image);
+      if (resolvedImg) aboutImg.src = resolvedImg;
     }
 
     // 5. Contato

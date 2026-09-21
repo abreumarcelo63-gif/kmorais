@@ -6,6 +6,48 @@
 const ADMIN_PASSWORD_HASH = '@marcelo123';
 const AUTH_SESSION_KEY = 'km_admin_authenticated';
 
+function formatFileSize(bytes) {
+  if (!bytes || bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+function compressImageFile(file, maxWidth = 1280, quality = 0.85) {
+  return new Promise((resolve, reject) => {
+    if (!file || !file.type.startsWith('image/')) {
+      resolve(null);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+        if (height > maxWidth) {
+          width = Math.round((width * maxWidth) / height);
+          height = maxWidth;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => resolve(e.target.result);
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 class KMAdminPanel {
   constructor() {
     this.authOverlay = document.getElementById('admin-auth-overlay');
@@ -14,6 +56,10 @@ class KMAdminPanel {
     this.loginError = document.getElementById('admin-login-error');
     this.mediaModal = document.getElementById('admin-media-modal');
     this.currentEditingMedia = null;
+    this.selectedVideoFile = null;
+    this.selectedPosterFile = null;
+    this.videoDropzoneCtrl = null;
+    this.posterDropzoneCtrl = null;
 
     this.initAuth();
   }
@@ -122,15 +168,23 @@ class KMAdminPanel {
         e.stopPropagation();
         const video = heroFrame.querySelector('video');
         const source = video?.querySelector('source');
+        const currentVid = source?.dataset?.mediaId || (source ? source.src : (video ? video.src : ''));
+        const currentPost = video?.dataset?.posterId || (video ? video.poster : '');
         this.openMediaModal({
           title: 'Editar Vídeo da Primeira Dobra (Hero)',
           type: 'hero',
-          videoUrl: source ? source.src : (video ? video.src : ''),
-          posterUrl: video ? video.poster : '',
+          videoUrl: currentVid,
+          posterUrl: currentPost,
           onSave: (data) => {
-            if (source) source.src = data.videoUrl;
+            if (source) {
+              source.src = data.videoUrl;
+              if (data.videoId) source.dataset.mediaId = data.videoId;
+              else delete source.dataset.mediaId;
+            }
             if (video) {
               video.poster = data.posterUrl;
+              if (data.posterId) video.dataset.posterId = data.posterId;
+              else delete video.dataset.posterId;
               video.load();
               video.play().catch(() => {});
             }
@@ -154,17 +208,25 @@ class KMAdminPanel {
         const video = card.querySelector('video');
         const source = video?.querySelector('source');
         const metaSpan = card.querySelector('.video-meta span:first-child');
+        const currentVid = source?.dataset?.mediaId || (source ? source.src : (video ? video.src : ''));
+        const currentPost = video?.dataset?.posterId || (video ? video.poster : '');
 
         this.openMediaModal({
           title: `Editar Vídeo do Card #${index + 1}`,
           type: 'video',
-          videoUrl: source ? source.src : (video ? video.src : ''),
-          posterUrl: video ? video.poster : '',
+          videoUrl: currentVid,
+          posterUrl: currentPost,
           label: metaSpan ? metaSpan.textContent.trim() : '',
           onSave: (data) => {
-            if (source) source.src = data.videoUrl;
+            if (source) {
+              source.src = data.videoUrl;
+              if (data.videoId) source.dataset.mediaId = data.videoId;
+              else delete source.dataset.mediaId;
+            }
             if (video) {
               video.poster = data.posterUrl;
+              if (data.posterId) video.dataset.posterId = data.posterId;
+              else delete video.dataset.posterId;
               video.load();
             }
             if (metaSpan && data.label) {
@@ -189,10 +251,12 @@ class KMAdminPanel {
         this.openMediaModal({
           title: 'Trocar Foto da Kelly (Seção Sobre)',
           type: 'image',
-          posterUrl: img ? img.src : '',
+          posterUrl: img?.dataset?.mediaId || (img ? img.src : ''),
           onSave: (data) => {
             if (img && data.posterUrl) {
               img.src = data.posterUrl;
+              if (data.posterId) img.dataset.mediaId = data.posterId;
+              else delete img.dataset.mediaId;
             }
           }
         });
@@ -232,13 +296,15 @@ class KMAdminPanel {
         this.openMediaModal({
           title: `Editar Case #${index + 1} ("Cases que saem da tela")`,
           type: 'case',
-          posterUrl: currentCover,
+          posterUrl: caseEl.dataset.coverId || currentCover,
           linkUrl: currentLink,
           label: currentTag,
           onSave: (data) => {
             if (cover && data.posterUrl) {
               cover.style.backgroundImage = `url("${data.posterUrl}")`;
               caseEl.dataset.coverUrl = data.posterUrl;
+              if (data.posterId) caseEl.dataset.coverId = data.posterId;
+              else delete caseEl.dataset.coverId;
             }
             if (data.linkUrl) {
               caseEl.href = data.linkUrl;
@@ -274,7 +340,7 @@ class KMAdminPanel {
 
         const img = photoEl.querySelector('img');
         const span = photoEl.querySelector('span');
-        const currentImg = img ? img.src : '';
+        const currentImg = img?.dataset?.mediaId || (img ? img.src : '');
         const currentLink = photoEl.getAttribute('href') || '';
         const currentLabel = span ? span.innerText.replace('↗', '').trim() : '';
 
@@ -287,6 +353,8 @@ class KMAdminPanel {
           onSave: (data) => {
             if (img && data.posterUrl) {
               img.src = data.posterUrl;
+              if (data.posterId) img.dataset.mediaId = data.posterId;
+              else delete img.dataset.mediaId;
             }
             if (data.linkUrl) {
               photoEl.href = data.linkUrl;
@@ -337,6 +405,10 @@ class KMAdminPanel {
     const closeModal = () => {
       this.mediaModal.classList.remove('is-open');
       this.currentEditingMedia = null;
+      this.selectedVideoFile = null;
+      this.selectedPosterFile = null;
+      this.videoDropzoneCtrl?.reset();
+      this.posterDropzoneCtrl?.reset();
     };
 
     if (closeBtn) closeBtn.addEventListener('click', closeModal);
@@ -346,29 +418,201 @@ class KMAdminPanel {
       if (e.target === this.mediaModal) closeModal();
     });
 
+    // Abas (Link vs Subir do PC)
+    const tabButtons = this.mediaModal.querySelectorAll('.admin-tab-btn');
+    tabButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const group = btn.closest('.admin-modal-group');
+        const tabName = btn.dataset.tab; // 'url' ou 'file'
+        group.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('is-active'));
+        btn.classList.add('is-active');
+
+        group.querySelectorAll('.admin-tab-content').forEach(c => {
+          c.classList.remove('is-active');
+          if (c.dataset.tabContent.endsWith(tabName)) {
+            c.classList.add('is-active');
+          }
+        });
+      });
+    });
+
+    // Configuração do Dropzone de Vídeo
+    this.videoDropzoneCtrl = this.initDropzone({
+      dropzoneId: 'video-dropzone',
+      fileInputId: 'admin-modal-video-file',
+      emptyId: 'video-dropzone-empty',
+      selectedId: 'video-dropzone-selected',
+      nameId: 'video-file-name',
+      removeId: 'video-file-remove',
+      onSelect: (file) => {
+        this.selectedVideoFile = file;
+      },
+      onRemove: () => {
+        this.selectedVideoFile = null;
+      }
+    });
+
+    // Configuração do Dropzone de Imagem/Poster
+    this.posterDropzoneCtrl = this.initDropzone({
+      dropzoneId: 'poster-dropzone',
+      fileInputId: 'admin-modal-poster-file',
+      emptyId: 'poster-dropzone-empty',
+      selectedId: 'poster-dropzone-selected',
+      nameId: 'poster-file-name',
+      removeId: 'poster-file-remove',
+      onSelect: (file) => {
+        this.selectedPosterFile = file;
+      },
+      onRemove: () => {
+        this.selectedPosterFile = null;
+      }
+    });
+
     if (saveBtn) {
-      saveBtn.addEventListener('click', () => {
+      saveBtn.addEventListener('click', async () => {
         if (!this.currentEditingMedia) return;
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Processando...';
 
-        const videoUrl = document.getElementById('admin-modal-video-url')?.value.trim();
-        const posterUrl = document.getElementById('admin-modal-poster-url')?.value.trim();
-        const label = document.getElementById('admin-modal-label')?.value.trim();
-        const linkUrl = document.getElementById('admin-modal-link-url')?.value.trim();
+        try {
+          let finalVideoUrl = document.getElementById('admin-modal-video-url')?.value.trim();
+          let finalVideoId = null;
 
-        if (this.currentEditingMedia.onSave) {
-          this.currentEditingMedia.onSave({ videoUrl, posterUrl, label, linkUrl });
+          if (this.selectedVideoFile) {
+            const mediaId = `idb:video_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+            await kmMediaStore.saveMedia(mediaId, this.selectedVideoFile, this.selectedVideoFile.type);
+            finalVideoUrl = URL.createObjectURL(this.selectedVideoFile);
+            finalVideoId = mediaId;
+          } else if (this.currentEditingMedia.currentVideoId && !finalVideoUrl) {
+            finalVideoId = this.currentEditingMedia.currentVideoId;
+            finalVideoUrl = await kmMediaStore.resolveUrl(finalVideoId);
+          }
+
+          let finalPosterUrl = document.getElementById('admin-modal-poster-url')?.value.trim();
+          let finalPosterId = null;
+
+          if (this.selectedPosterFile) {
+            const mediaId = `idb:img_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+            await kmMediaStore.saveMedia(mediaId, this.selectedPosterFile, this.selectedPosterFile.type);
+            const compressed = await compressImageFile(this.selectedPosterFile);
+            finalPosterUrl = compressed || URL.createObjectURL(this.selectedPosterFile);
+            finalPosterId = mediaId;
+          } else if (this.currentEditingMedia.currentPosterId && !finalPosterUrl) {
+            finalPosterId = this.currentEditingMedia.currentPosterId;
+            finalPosterUrl = await kmMediaStore.resolveUrl(finalPosterId);
+          }
+
+          const label = document.getElementById('admin-modal-label')?.value.trim();
+          const linkUrl = document.getElementById('admin-modal-link-url')?.value.trim();
+
+          if (this.currentEditingMedia.onSave) {
+            this.currentEditingMedia.onSave({
+              videoUrl: finalVideoUrl,
+              videoId: finalVideoId,
+              posterUrl: finalPosterUrl,
+              posterId: finalPosterId,
+              label,
+              linkUrl
+            });
+          }
+
+          closeModal();
+          this.showToast('Mídia atualizada no editor!');
+        } catch (err) {
+          console.error('Erro ao processar mídia:', err);
+          alert('Houve um erro ao processar a mídia. Tente novamente.');
+        } finally {
+          saveBtn.disabled = false;
+          saveBtn.textContent = 'Aplicar';
         }
-
-        closeModal();
-        this.showToast('Mídia atualizada no editor!');
       });
     }
+  }
+
+  initDropzone({ dropzoneId, fileInputId, emptyId, selectedId, nameId, removeId, onSelect, onRemove }) {
+    const dropzone = document.getElementById(dropzoneId);
+    const fileInput = document.getElementById(fileInputId);
+    const emptyEl = document.getElementById(emptyId);
+    const selectedEl = document.getElementById(selectedId);
+    const nameEl = document.getElementById(nameId);
+    const removeBtn = document.getElementById(removeId);
+
+    if (!dropzone || !fileInput) return null;
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.add('is-dragover');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.remove('is-dragover');
+      });
+    });
+
+    dropzone.addEventListener('drop', (e) => {
+      const files = e.dataTransfer.files;
+      if (files && files.length > 0) {
+        fileInput.files = files;
+        handleFile(files[0]);
+      }
+    });
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files && fileInput.files.length > 0) {
+        handleFile(fileInput.files[0]);
+      }
+    });
+
+    const handleFile = (file) => {
+      if (nameEl) nameEl.textContent = `${file.name} (${formatFileSize(file.size)})`;
+      if (emptyEl) emptyEl.classList.add('is-hidden');
+      if (selectedEl) selectedEl.classList.remove('is-hidden');
+      if (onSelect) onSelect(file);
+    };
+
+    const reset = () => {
+      fileInput.value = '';
+      if (nameEl) nameEl.textContent = '';
+      if (emptyEl) emptyEl.classList.remove('is-hidden');
+      if (selectedEl) selectedEl.classList.add('is-hidden');
+      if (onRemove) onRemove();
+    };
+
+    if (removeBtn) {
+      removeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        reset();
+      });
+    }
+
+    return {
+      reset,
+      setDisplay: (text) => {
+        if (nameEl) nameEl.textContent = text;
+        if (emptyEl) emptyEl.classList.add('is-hidden');
+        if (selectedEl) selectedEl.classList.remove('is-hidden');
+      }
+    };
   }
 
   openMediaModal({ title, type, videoUrl = '', posterUrl = '', label = '', linkUrl = '', onSave }) {
     if (!this.mediaModal) return;
 
-    this.currentEditingMedia = { type, onSave };
+    this.selectedVideoFile = null;
+    this.selectedPosterFile = null;
+    this.videoDropzoneCtrl?.reset();
+    this.posterDropzoneCtrl?.reset();
+
+    const currentVideoId = (typeof videoUrl === 'string' && videoUrl.startsWith('idb:')) ? videoUrl : null;
+    const currentPosterId = (typeof posterUrl === 'string' && posterUrl.startsWith('idb:')) ? posterUrl : null;
+
+    this.currentEditingMedia = { type, currentVideoId, currentPosterId, onSave };
 
     const modalTitle = document.getElementById('admin-modal-title');
     const videoGroup = document.getElementById('admin-modal-video-group');
@@ -381,12 +625,64 @@ class KMAdminPanel {
     const linkInput = document.getElementById('admin-modal-link-url');
 
     if (modalTitle) modalTitle.textContent = title || 'Editar Mídia';
-    if (videoInput) videoInput.value = videoUrl;
-    if (posterInput) posterInput.value = posterUrl;
     if (labelInput) labelInput.value = label;
     if (linkInput) linkInput.value = linkUrl;
 
-    // Ajusta campos conforme o tipo de mídia
+    // Configura aba do Vídeo
+    if (videoGroup) {
+      const vidBtnUrl = videoGroup.querySelector('.admin-tab-btn[data-tab="url"]');
+      const vidBtnFile = videoGroup.querySelector('.admin-tab-btn[data-tab="file"]');
+      const vidContentUrl = videoGroup.querySelector('.admin-tab-content[data-tab-content="video-url"]');
+      const vidContentFile = videoGroup.querySelector('.admin-tab-content[data-tab-content="video-file"]');
+
+      if (currentVideoId) {
+        if (videoInput) videoInput.value = '';
+        vidBtnUrl?.classList.remove('is-active');
+        vidBtnFile?.classList.add('is-active');
+        vidContentUrl?.classList.remove('is-active');
+        vidContentFile?.classList.add('is-active');
+        this.videoDropzoneCtrl?.setDisplay('Vídeo do PC salvo no banco');
+      } else {
+        if (videoInput) videoInput.value = videoUrl || '';
+        vidBtnUrl?.classList.add('is-active');
+        vidBtnFile?.classList.remove('is-active');
+        vidContentUrl?.classList.add('is-active');
+        vidContentFile?.classList.remove('is-active');
+      }
+    }
+
+    // Configura aba do Poster / Foto
+    const posterGroup = document.getElementById('admin-modal-poster-group');
+    if (posterGroup) {
+      const posBtnUrl = posterGroup.querySelector('.admin-tab-btn[data-tab="url"]');
+      const posBtnFile = posterGroup.querySelector('.admin-tab-btn[data-tab="file"]');
+      const posContentUrl = posterGroup.querySelector('.admin-tab-content[data-tab-content="poster-url"]');
+      const posContentFile = posterGroup.querySelector('.admin-tab-content[data-tab-content="poster-file"]');
+
+      if (currentPosterId) {
+        if (posterInput) posterInput.value = '';
+        posBtnUrl?.classList.remove('is-active');
+        posBtnFile?.classList.add('is-active');
+        posContentUrl?.classList.remove('is-active');
+        posContentFile?.classList.add('is-active');
+        this.posterDropzoneCtrl?.setDisplay('Imagem do PC salva');
+      } else if (posterUrl && posterUrl.startsWith('data:image/')) {
+        if (posterInput) posterInput.value = '';
+        posBtnUrl?.classList.remove('is-active');
+        posBtnFile?.classList.add('is-active');
+        posContentUrl?.classList.remove('is-active');
+        posContentFile?.classList.add('is-active');
+        this.posterDropzoneCtrl?.setDisplay('Foto do PC carregada');
+      } else {
+        if (posterInput) posterInput.value = posterUrl || '';
+        posBtnUrl?.classList.add('is-active');
+        posBtnFile?.classList.remove('is-active');
+        posContentUrl?.classList.add('is-active');
+        posContentFile?.classList.remove('is-active');
+      }
+    }
+
+    // Ajusta visibilidade de grupos conforme o tipo de mídia
     if (type === 'case' || type === 'instagram') {
       if (videoGroup) videoGroup.style.display = 'none';
       if (linkGroup) linkGroup.style.display = 'block';
@@ -413,6 +709,8 @@ class KMAdminPanel {
 
     const heroVideo = document.querySelector('.hero-frame video');
     const heroSource = heroVideo?.querySelector('source');
+    const heroVideoVal = heroSource?.dataset?.mediaId || (heroSource?.src?.startsWith('blob:') ? '' : heroSource?.src) || (heroVideo?.src?.startsWith('blob:') ? '' : heroVideo?.src) || '';
+    const heroPosterVal = heroVideo?.dataset?.posterId || (heroVideo?.poster?.startsWith('blob:') ? '' : heroVideo?.poster) || '';
 
     const brandsTitle = document.querySelector('#brands-title')?.innerHTML.trim();
     const portfolioTitle = document.querySelector('#portfolio-title')?.innerHTML.trim();
@@ -424,10 +722,12 @@ class KMAdminPanel {
       const video = card.querySelector('video');
       const source = video?.querySelector('source');
       const label = card.querySelector('.video-meta span:first-child')?.textContent.trim();
+      const videoVal = source?.dataset?.mediaId || (source?.src?.startsWith('blob:') ? '' : source?.src) || (video?.src?.startsWith('blob:') ? '' : video?.src) || '';
+      const posterVal = video?.dataset?.posterId || (video?.poster?.startsWith('blob:') ? '' : video?.poster) || '';
 
       portfolioVideos.push({
-        video: source ? source.src : (video ? video.src : ''),
-        poster: video ? video.poster : '',
+        video: videoVal,
+        poster: posterVal,
         label: label || ''
       });
     });
@@ -441,12 +741,13 @@ class KMAdminPanel {
         const match = cover.style.backgroundImage.match(/url\(['"]?(.*?)['"]?\)/);
         if (match) bgUrl = match[1];
       }
+      const coverVal = caseEl.dataset.coverId || (bgUrl?.startsWith('blob:') ? '' : bgUrl) || '';
       const tag = caseEl.querySelector('.real-case-content span')?.innerHTML.trim();
       const title = caseEl.querySelector('.real-case-content h3')?.innerHTML.trim();
       const desc = caseEl.querySelector('.real-case-content p')?.innerHTML.trim();
 
       realCases.push({
-        cover: bgUrl,
+        cover: coverVal,
         link: caseEl.getAttribute('href') || '',
         tag: tag || '',
         title: title || '',
@@ -460,9 +761,10 @@ class KMAdminPanel {
       const img = card.querySelector('img');
       const span = card.querySelector('span');
       const label = span ? span.innerText.replace('↗', '').trim() : '';
+      const imgVal = img?.dataset?.mediaId || (img?.src?.startsWith('blob:') ? '' : img?.src) || '';
 
       instagramPosts.push({
-        image: img ? img.src : '',
+        image: imgVal,
         link: card.getAttribute('href') || '',
         label: label || ''
       });
@@ -471,7 +773,8 @@ class KMAdminPanel {
     // Sobre
     const aboutTitle = document.querySelector('#about-title')?.innerHTML.trim();
     const aboutBio = document.querySelector('.about-content p:nth-of-type(2)')?.innerHTML.trim();
-    const aboutImage = document.querySelector('.about-image img')?.src;
+    const aboutImgEl = document.querySelector('.about-image img');
+    const aboutImageVal = aboutImgEl?.dataset?.mediaId || (aboutImgEl?.src?.startsWith('blob:') ? '' : aboutImgEl?.src) || '';
 
     // Contato
     const contactTitle = document.querySelector('#contact-title')?.innerHTML.trim();
@@ -485,8 +788,8 @@ class KMAdminPanel {
         title: heroTitle,
         text: heroText,
         sticker: heroSticker,
-        video: heroSource ? heroSource.src : (heroVideo ? heroVideo.src : ''),
-        poster: heroVideo ? heroVideo.poster : ''
+        video: heroVideoVal,
+        poster: heroPosterVal
       },
       brandsTitle,
       portfolioTitle,
@@ -497,7 +800,7 @@ class KMAdminPanel {
       about: {
         title: aboutTitle,
         bio: aboutBio,
-        image: aboutImage
+        image: aboutImageVal
       },
       contact: {
         title: contactTitle,
