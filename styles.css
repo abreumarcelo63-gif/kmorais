@@ -372,10 +372,27 @@ h1 em, h2 em { font-family: Georgia, serif; font-weight: 400; color: var(--coral
   transition: transform .25s ease, box-shadow .25s ease;
   user-select: none;
   box-sizing: border-box;
+  overflow: hidden;
 }
 .brand-pill-circle:hover {
   transform: translateY(-4px) scale(1.05);
   box-shadow: 0 8px 20px rgba(30, 37, 34, 0.16);
+}
+
+.brand-pill-circle img.brand-logo-img {
+  max-width: 85%;
+  max-height: 85%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+
+.brand-pill-circle.has-custom-logo {
+  background: #ffffff !important;
+  border-color: rgba(30, 37, 34, 0.12) !important;
+  box-shadow: 0 4px 14px rgba(30, 37, 34, 0.1) !important;
+  padding: 10px !important;
 }
 
 /* Tipografia e cores específicas de cada marca */

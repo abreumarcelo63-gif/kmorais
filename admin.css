@@ -291,6 +291,45 @@ body.is-admin-mode .site-header {
   color: var(--ink);
 }
 
+/* Botão flutuante para editar marcas (ícone/logo) */
+.brand-pill {
+  position: relative !important;
+}
+
+.admin-edit-brand-btn {
+  position: absolute;
+  top: -4px;
+  right: calc(50% - 44px);
+  z-index: 25;
+  background: var(--ink);
+  color: var(--lime);
+  border: 1.5px solid var(--lime);
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transform: scale(0.75);
+  transition: all 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+
+.brand-pill:hover .admin-edit-brand-btn {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.admin-edit-brand-btn:hover {
+  background: var(--lime);
+  color: var(--ink);
+  transform: scale(1.2);
+  box-shadow: 0 0 14px rgba(214, 238, 130, 0.6);
+}
+
 /* 4. Modal de Edição de Mídia (Vídeo / Capa / Foto) */
 .admin-modal-overlay {
   position: fixed;

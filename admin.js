@@ -20,6 +20,17 @@ function compressImageFile(file, maxWidth = 1280, quality = 0.85) {
       resolve(null);
       return;
     }
+
+    // Para SVGs, preserva vetor puro via Data URL
+    if (file.type === 'image/svg+xml') {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    const isPng = file.type === 'image/png';
     const reader = new FileReader();
     reader.onload = (e) => {
       const img = new Image();
@@ -38,7 +49,12 @@ function compressImageFile(file, maxWidth = 1280, quality = 0.85) {
         canvas.height = height;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', quality));
+
+        if (isPng) {
+          resolve(canvas.toDataURL('image/png'));
+        } else {
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        }
       };
       img.onerror = () => resolve(e.target.result);
       img.src = e.target.result;
@@ -157,6 +173,64 @@ class KMAdminPanel {
   }
 
   setupMediaButtons() {
+    // 0. Marcas (Brand Pills)
+    document.querySelectorAll('.brands-grid .brand-pill').forEach((pill, index) => {
+      if (pill.querySelector('.admin-edit-brand-btn')) return;
+      pill.style.position = 'relative';
+
+      const circle = pill.querySelector('.brand-pill-circle');
+      const brandName = pill.getAttribute('title') || circle?.querySelector('.brand-name')?.textContent.trim() || `Marca #${index + 1}`;
+
+      const btn = document.createElement('button');
+      btn.className = 'admin-edit-brand-btn';
+      btn.innerHTML = '✏';
+      btn.title = `Trocar ícone/logo da marca ${brandName}`;
+      btn.type = 'button';
+
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+
+        const currentImg = circle?.querySelector('img.brand-logo-img')?.src || circle?.dataset?.customLogo || '';
+        const currentId = circle?.dataset?.mediaId || '';
+        const currentTitle = pill.getAttribute('title') || brandName;
+
+        this.openMediaModal({
+          title: `Editar Marca #${index + 1} (${currentTitle})`,
+          type: 'brand',
+          posterUrl: currentId || currentImg,
+          label: currentTitle,
+          onSave: (data) => {
+            if (data.label) {
+              pill.title = data.label;
+            }
+            if (data.posterUrl) {
+              circle.classList.add('has-custom-logo');
+              circle.dataset.customLogo = data.posterUrl;
+              if (data.posterId) circle.dataset.mediaId = data.posterId;
+              else delete circle.dataset.mediaId;
+
+              let img = circle.querySelector('img.brand-logo-img');
+              if (!img) {
+                circle.innerHTML = `<img src="${data.posterUrl}" alt="${data.label || currentTitle}" class="brand-logo-img">`;
+              } else {
+                img.src = data.posterUrl;
+                img.alt = data.label || currentTitle;
+              }
+            } else {
+              circle.classList.remove('has-custom-logo');
+              delete circle.dataset.customLogo;
+              delete circle.dataset.mediaId;
+              if (data.label) {
+                circle.innerHTML = `<span class="brand-name">${data.label}</span>`;
+              }
+            }
+          }
+        });
+      });
+      pill.appendChild(btn);
+    });
+
     // 1. Hero Video
     const heroFrame = document.querySelector('.hero-frame');
     if (heroFrame && !heroFrame.querySelector('.admin-edit-media-btn')) {
@@ -682,8 +756,24 @@ class KMAdminPanel {
       }
     }
 
+    // Ajusta rótulos dos campos dinamicamente conforme o tipo
+    const posterLabel = document.getElementById('admin-modal-poster-label');
+    const labelGroupLabel = labelGroup ? labelGroup.querySelector('label') : null;
+
+    if (type === 'brand') {
+      if (posterLabel) posterLabel.textContent = 'Ícone / Logo da Marca (PNG, SVG, JPG)';
+      if (labelGroupLabel) labelGroupLabel.textContent = 'Nome da Marca';
+    } else {
+      if (posterLabel) posterLabel.textContent = 'Imagem de Capa / Foto';
+      if (labelGroupLabel) labelGroupLabel.textContent = 'Rótulo / Legenda do Card';
+    }
+
     // Ajusta visibilidade de grupos conforme o tipo de mídia
-    if (type === 'case' || type === 'instagram') {
+    if (type === 'brand') {
+      if (videoGroup) videoGroup.style.display = 'none';
+      if (linkGroup) linkGroup.style.display = 'none';
+      if (labelGroup) labelGroup.style.display = 'block';
+    } else if (type === 'case' || type === 'instagram') {
       if (videoGroup) videoGroup.style.display = 'none';
       if (linkGroup) linkGroup.style.display = 'block';
       if (labelGroup) labelGroup.style.display = 'block';
@@ -713,6 +803,21 @@ class KMAdminPanel {
     const heroPosterVal = heroVideo?.dataset?.posterId || (heroVideo?.poster?.startsWith('blob:') ? '' : heroVideo?.poster) || '';
 
     const brandsTitle = document.querySelector('#brands-title')?.innerHTML.trim();
+
+    // Marcas (Brand Pills)
+    const brandsList = [];
+    document.querySelectorAll('.brands-grid .brand-pill').forEach((pill) => {
+      const circle = pill.querySelector('.brand-pill-circle');
+      const img = circle?.querySelector('img.brand-logo-img');
+      const imageVal = circle?.dataset?.mediaId || (circle?.dataset?.customLogo?.startsWith('blob:') ? '' : circle?.dataset?.customLogo) || (img?.src?.startsWith('blob:') ? '' : img?.src) || '';
+      const nameVal = pill.getAttribute('title') || circle?.querySelector('.brand-name')?.textContent.trim() || '';
+
+      brandsList.push({
+        name: nameVal,
+        image: imageVal
+      });
+    });
+
     const portfolioTitle = document.querySelector('#portfolio-title')?.innerHTML.trim();
     const portfolioIntro = document.querySelector('.portfolio .section-intro')?.innerHTML.trim();
 
@@ -792,6 +897,7 @@ class KMAdminPanel {
         poster: heroPosterVal
       },
       brandsTitle,
+      brandsList,
       portfolioTitle,
       portfolioIntro,
       portfolioVideos,

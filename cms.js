@@ -17,6 +17,22 @@ const defaultCMSContent = {
     poster: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&q=85&auto=format&fit=crop"
   },
   brandsTitle: "Grandes marcas <em>confiam.</em>",
+  brandsList: [
+    { name: "Dove", image: "" },
+    { name: "Fox Cycles", image: "" },
+    { name: "Seda", image: "" },
+    { name: "Kibon", image: "" },
+    { name: "Omo", image: "" },
+    { name: "Avon", image: "" },
+    { name: "Kopenhagen", image: "" },
+    { name: "Cif", image: "" },
+    { name: "Pantene", image: "" },
+    { name: "Eudora", image: "" },
+    { name: "Mercado Livre", image: "" },
+    { name: "Sensodyne", image: "" },
+    { name: "Secret", image: "" },
+    { name: "Upseller ERP", image: "" }
+  ],
   portfolioTitle: "Cases que<br><em>fazem vender.</em>",
   portfolioIntro: "Do roteiro ao video final, cada entrega nasce alinhada ao objetivo da marca: conectar, explicar ou converter.",
   about: {
@@ -240,6 +256,37 @@ class KMCMS {
     const brandsTitle = document.querySelector('#brands-title');
     if (brandsTitle && data.brandsTitle) {
       brandsTitle.innerHTML = data.brandsTitle;
+    }
+
+    // 2.5. Marcas e Logotipos Customizados
+    if (data.brandsList && Array.isArray(data.brandsList)) {
+      const brandPills = document.querySelectorAll('.brands-grid .brand-pill');
+      for (let idx = 0; idx < data.brandsList.length; idx++) {
+        const item = data.brandsList[idx];
+        if (!brandPills[idx]) continue;
+        const pill = brandPills[idx];
+        const circle = pill.querySelector('.brand-pill-circle');
+        if (!circle) continue;
+
+        if (item.name) {
+          pill.title = item.name;
+        }
+
+        if (item.image) {
+          const resolvedImg = await kmMediaStore.resolveUrl(item.image);
+          if (resolvedImg) {
+            circle.classList.add('has-custom-logo');
+            circle.dataset.customLogo = item.image;
+            let img = circle.querySelector('img.brand-logo-img');
+            if (!img) {
+              circle.innerHTML = `<img src="${resolvedImg}" alt="${item.name || ''}" class="brand-logo-img">`;
+            } else {
+              img.src = resolvedImg;
+              img.alt = item.name || '';
+            }
+          }
+        }
+      }
     }
 
     const portfolioTitle = document.querySelector('#portfolio-title');
