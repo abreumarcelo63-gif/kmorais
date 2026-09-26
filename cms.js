@@ -601,13 +601,14 @@ class KMCMS {
               const rawVideo = await kmMediaStore.resolveUrl(item.video);
               const resolvedVideo = normalizeVideoUrl(rawVideo);
               if (resolvedVideo) {
-                if (src) src.src = resolvedVideo;
-                video.src = resolvedVideo;
-                video.load();
-                if (resolvedVideo.includes('instagram.com') || resolvedVideo.includes('tiktok.com')) {
+                const isSocial = resolvedVideo.includes('instagram.com') || resolvedVideo.includes('tiktok.com');
+                if (isSocial) {
                   cards[idx].dataset.externalUrl = resolvedVideo;
                 } else {
                   delete cards[idx].dataset.externalUrl;
+                  if (src) src.src = resolvedVideo;
+                  video.src = resolvedVideo;
+                  video.load();
                 }
               }
             }

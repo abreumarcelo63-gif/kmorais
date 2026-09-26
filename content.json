@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-21T13:40:23.204Z",
+  "updatedAt": "2026-09-26T14:03:00.000Z",
   "hero": {
     "eyebrow": "KELLY MORAIS · CREATOR + MARKETING",
     "title": "Conteúdo que<br><em>parece conversa</em><br>e gera ação.",
@@ -71,19 +71,19 @@
   "portfolioIntro": "Do roteiro ao video final, cada entrega nasce alinhada ao objetivo da marca: conectar, explicar ou converter.",
   "portfolioVideos": [
     {
-      "video": "https://res.cloudinary.com/demo/video/upload/q_auto,w_400/sea_turtle.mp4",
-      "poster": "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=700&q=85&auto=format&fit=crop",
-      "label": "get ready with me"
+      "video": "media/teste-video-01.mp4",
+      "poster": "media/teste-foto-kelly.jpg",
+      "label": "teste do pc (video + foto)"
     },
     {
       "video": "https://res.cloudinary.com/demo/video/upload/q_auto,w_400/finish_line.mp4",
       "poster": "https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=700&q=85&auto=format&fit=crop",
-      "label": "unboxing & teste"
+      "label": "teste via url (mp4 cdn)"
     },
     {
-      "video": "https://res.cloudinary.com/demo/video/upload/q_auto,w_400/dog.mp4",
-      "poster": "https://images.unsplash.com/photo-1611930022073-b7a4ba5fcccd?w=700&q=85&auto=format&fit=crop",
-      "label": "rotina de cuidados"
+      "video": "https://www.instagram.com/reel/Dc4TsgNhvXy/",
+      "poster": "media/teste-foto-kelly.jpg",
+      "label": "teste via url (instagram reel)"
     },
     {
       "video": "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
@@ -315,7 +315,7 @@
   "about": {
     "title": "A amiga que<br>seu público <em>estava procurando.</em>",
     "bio": "Tenho 26 anos, moro em São Paulo e sou formada em Marketing. Sou mãe, trabalho no marketing de um e-commerce e crio conteúdo com uma linguagem leve, real e sem performar.",
-    "image": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&q=85&auto=format&fit=crop"
+    "image": "media/teste-foto-kelly.jpg"
   },
   "contact": {
     "title": "Tem uma ideia?<br><em>Vamos tirar do papel.</em>",

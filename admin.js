@@ -96,6 +96,23 @@ function normalizeVideoUrl(url) {
   return url;
 }
 
+/**
+ * Garante que mídias portáveis (URLs completas, caminhos relativos e Data URLs em Base64)
+ * sejam preservadas em produção no content.json, em vez de IDs locais do IndexedDB.
+ */
+function getPortableMediaVal(primaryVal, fallbackIdbId) {
+  if (primaryVal && typeof primaryVal === 'string') {
+    const trimmed = primaryVal.trim();
+    if (trimmed.startsWith('data:') || trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('media/') || trimmed.startsWith('./') || trimmed.startsWith('/')) {
+      return trimmed;
+    }
+  }
+  if (fallbackIdbId && typeof fallbackIdbId === 'string' && fallbackIdbId.startsWith('idb:')) {
+    return fallbackIdbId;
+  }
+  return (primaryVal && !primaryVal.startsWith('blob:')) ? primaryVal : '';
+}
+
 function formatFileSize(bytes) {
   if (!bytes || bytes === 0) return '0 B';
   const k = 1024;
@@ -416,22 +433,25 @@ class KMAdminPanel {
           label: metaSpan ? metaSpan.textContent.trim() : '',
           onSave: (data) => {
             const finalUrl = normalizeVideoUrl(data.videoUrl);
-            if (source) {
-              source.src = finalUrl;
-              if (data.videoId) source.dataset.mediaId = data.videoId;
-              else delete source.dataset.mediaId;
-            }
-            if (video) {
-              video.src = finalUrl;
-              if (data.posterUrl) video.poster = data.posterUrl;
-              if (data.posterId) video.dataset.posterId = data.posterId;
-              else delete video.dataset.posterId;
-              video.load();
-            }
-            if (finalUrl.includes('instagram.com') || finalUrl.includes('tiktok.com')) {
+            const isSocialUrl = finalUrl.includes('instagram.com') || finalUrl.includes('tiktok.com');
+            if (isSocialUrl) {
               card.dataset.externalUrl = finalUrl;
             } else {
               delete card.dataset.externalUrl;
+              if (source) {
+                source.src = finalUrl;
+                if (data.videoId) source.dataset.mediaId = data.videoId;
+                else delete source.dataset.mediaId;
+              }
+              if (video) {
+                video.src = finalUrl;
+                video.load();
+              }
+            }
+            if (video && data.posterUrl) {
+              video.poster = data.posterUrl;
+              if (data.posterId) video.dataset.posterId = data.posterId;
+              else delete video.dataset.posterId;
             }
             if (metaSpan && data.label) {
               metaSpan.textContent = data.label;
@@ -1008,8 +1028,8 @@ class KMAdminPanel {
 
     const heroVideo = document.querySelector('.hero-frame video');
     const heroSource = heroVideo?.querySelector('source');
-    const heroVideoVal = heroSource?.dataset?.mediaId || (heroSource?.src?.startsWith('blob:') ? '' : heroSource?.src) || (heroVideo?.src?.startsWith('blob:') ? '' : heroVideo?.src) || '';
-    const heroPosterVal = heroVideo?.dataset?.posterId || (heroVideo?.poster?.startsWith('blob:') ? '' : heroVideo?.poster) || '';
+    const heroVideoVal = getPortableMediaVal(heroSource?.src || heroVideo?.src, heroSource?.dataset?.mediaId || heroVideo?.dataset?.mediaId);
+    const heroPosterVal = getPortableMediaVal(heroVideo?.poster, heroVideo?.dataset?.posterId);
 
     const brandsTitle = document.querySelector('#brands-title')?.innerHTML.trim();
 
@@ -1018,7 +1038,8 @@ class KMAdminPanel {
     document.querySelectorAll('.brands-grid .brand-pill').forEach((pill) => {
       const circle = pill.querySelector('.brand-pill-circle');
       const img = circle?.querySelector('img.brand-logo-img');
-      const imageVal = circle?.dataset?.mediaId || (circle?.dataset?.customLogo?.startsWith('blob:') ? '' : circle?.dataset?.customLogo) || (img?.src?.startsWith('blob:') ? '' : img?.src) || '';
+      const rawImgSrc = circle?.dataset?.customLogo || img?.src || '';
+      const imageVal = getPortableMediaVal(rawImgSrc, circle?.dataset?.mediaId);
       const nameVal = pill.getAttribute('title') || circle?.querySelector('.brand-name')?.textContent.trim() || '';
 
       brandsList.push({
@@ -1036,8 +1057,9 @@ class KMAdminPanel {
       const video = card.querySelector('video');
       const source = video?.querySelector('source');
       const label = card.querySelector('.video-meta span:first-child')?.textContent.trim();
-      const videoVal = source?.dataset?.mediaId || (source?.src?.startsWith('blob:') ? '' : source?.src) || (video?.src?.startsWith('blob:') ? '' : video?.src) || '';
-      const posterVal = video?.dataset?.posterId || (video?.poster?.startsWith('blob:') ? '' : video?.poster) || '';
+      const rawVid = card.dataset.externalUrl || source?.src || video?.src || '';
+      const videoVal = getPortableMediaVal(rawVid, source?.dataset?.mediaId || video?.dataset?.mediaId);
+      const posterVal = getPortableMediaVal(video?.poster, video?.dataset?.posterId);
 
       portfolioVideos.push({
         video: videoVal,
@@ -1055,7 +1077,7 @@ class KMAdminPanel {
         const match = cover.style.backgroundImage.match(/url\(['"]?(.*?)['"]?\)/);
         if (match) bgUrl = match[1];
       }
-      const coverVal = caseEl.dataset.coverId || (bgUrl?.startsWith('blob:') ? '' : bgUrl) || '';
+      const coverVal = getPortableMediaVal(bgUrl, caseEl.dataset.coverId);
       const tag = caseEl.querySelector('.real-case-content span')?.innerHTML.trim();
       const title = caseEl.querySelector('.real-case-content h3')?.innerHTML.trim();
       const desc = caseEl.querySelector('.real-case-content p')?.innerHTML.trim();
@@ -1075,7 +1097,7 @@ class KMAdminPanel {
       const img = card.querySelector('img');
       const span = card.querySelector('span');
       const label = span ? span.innerText.replace('↗', '').trim() : '';
-      const imgVal = img?.dataset?.mediaId || (img?.src?.startsWith('blob:') ? '' : img?.src) || '';
+      const imgVal = getPortableMediaVal(img?.src, img?.dataset?.mediaId);
 
       instagramPosts.push({
         image: imgVal,
@@ -1088,7 +1110,7 @@ class KMAdminPanel {
     const aboutTitle = document.querySelector('#about-title')?.innerHTML.trim();
     const aboutBio = document.querySelector('.about-content p:nth-of-type(2)')?.innerHTML.trim();
     const aboutImgEl = document.querySelector('.about-image img');
-    const aboutImageVal = aboutImgEl?.dataset?.mediaId || (aboutImgEl?.src?.startsWith('blob:') ? '' : aboutImgEl?.src) || '';
+    const aboutImageVal = getPortableMediaVal(aboutImgEl?.src, aboutImgEl?.dataset?.mediaId);
 
     // Serviços & Formatos
     const servicesTitle = document.querySelector('#services-title')?.innerHTML.trim();
