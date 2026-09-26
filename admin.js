@@ -613,6 +613,12 @@ class KMAdminPanel {
       resetBtn.addEventListener('click', () => {
         if (confirm('Tem certeza que deseja restaurar os textos e vídeos padrões do site original?')) {
           localStorage.removeItem(KM_CMS_STORAGE_KEY);
+          if (window.kmMediaStore?.cleanupOrphans) {
+            window.kmMediaStore.cleanupOrphans([]).finally(() => {
+              location.reload();
+            });
+            return;
+          }
           location.reload();
         }
       });
