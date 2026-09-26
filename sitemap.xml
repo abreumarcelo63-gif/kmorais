@@ -3,13 +3,13 @@
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
     <loc>https://abreumarcelo1994.github.io/kmorais/</loc>
-    <lastmod>2026-09-21</lastmod>
-    <changefreq>weekly</changefreq>
+    <lastmod>2026-09-26</lastmod>
+    <changefreq>daily</changefreq>
     <priority>1.0</priority>
     <image:image>
-      <image:loc>https://myworksnet.my.canva.site/kellymoraiso-ugc/_assets/media/f10c710c686c6a1866045397bdf8367a.jpg</image:loc>
-      <image:title>Kelly Morais - UGC Creator em São Paulo</image:title>
-      <image:caption>Portfólio de conteúdo UGC para marcas e agências</image:caption>
+      <image:loc>https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&amp;q=85&amp;auto=format&amp;fit=crop</image:loc>
+      <image:title>Kelly Morais - UGC Creator e Estratégia de Conteúdo em São Paulo</image:title>
+      <image:caption>Portfólio de User Generated Content (UGC) com estratégia de e-commerce e roteiros publicitários</image:caption>
     </image:image>
   </url>
 </urlset>

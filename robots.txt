@@ -2,10 +2,26 @@
 User-agent: *
 Allow: /
 
-# AI & LLM Search Engine Bots (Explicitly Allowed for Indexing & GEO)
+# Motores de Busca Principais
 User-agent: Googlebot
 Allow: /
 
+User-agent: Bingbot
+Allow: /
+
+User-agent: Slurp
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+User-agent: Baiduspider
+Allow: /
+
+User-agent: Yandex
+Allow: /
+
+# AI, LLM & Generative Search Bots (Explicitamente Autorizados para GEO / Indexação)
 User-agent: Google-Extended
 Allow: /
 
@@ -13,6 +29,9 @@ User-agent: GPTBot
 Allow: /
 
 User-agent: ChatGPT-User
+Allow: /
+
+User-agent: OAI-SearchBot
 Allow: /
 
 User-agent: ClaudeBot
@@ -24,10 +43,21 @@ Allow: /
 User-agent: PerplexityBot
 Allow: /
 
+User-agent: Applebot
+Allow: /
+
 User-agent: Applebot-Extended
 Allow: /
 
-User-agent: Bingbot
+User-agent: Meta-ExternalAgent
 Allow: /
 
+User-agent: cohere-ai
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+
+# Sitemaps & Metadados para IAs e Motores de Busca
 Sitemap: https://abreumarcelo1994.github.io/kmorais/sitemap.xml
+# LLMs context file: https://abreumarcelo1994.github.io/kmorais/llms.txt
