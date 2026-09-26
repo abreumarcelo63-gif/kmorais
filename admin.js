@@ -1,38 +1,55 @@
 /**
  * KMORAIS - Painel de Controle Administrativo (In-Place Editor)
- * Senha configurada: @marcelo123
  */
 
-const ADMIN_PASSWORD_HASH = '@marcelo123';
+// Hash SHA-256 da senha de acesso — a senha nunca fica em texto puro no código.
+const ADMIN_PASSWORD_HASH = '46377033dd07574aaba090dcb5e33bb9aaf082ac4d80adba57c023de5c5f8cb3';
 const AUTH_SESSION_KEY = 'km_admin_authenticated';
 const KM_GH_CONFIG_KEY = 'km_github_sync_config_v1';
-const ENCRYPTED_GH_KEY = 'JwUOLQUDKyZdBV0LWjQVGSEpI0EDSQsfBQcmAhQcd39yGF4ZHyUnIA==';
+const KM_LOGIN_ATTEMPTS_KEY = 'km_admin_login_attempts';
+const KM_LOGIN_LOCKOUT_KEY = 'km_admin_login_lockout';
+
+// Função SHA-256 via Web Crypto API (assíncrona, nativa do browser)
+async function sha256(message) {
+  const msgBuffer = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
 
 function utf8ToBase64(str) {
   return btoa(unescape(encodeURIComponent(str)));
 }
 
-function base64ToUtf8(str) {
-  return decodeURIComponent(escape(atob(str)));
+// Rate limiting: bloqueia login após 5 tentativas erradas por 30 segundos
+function isLoginLocked() {
+  const lockoutUntil = Number(sessionStorage.getItem(KM_LOGIN_LOCKOUT_KEY) || 0);
+  return Date.now() < lockoutUntil;
 }
 
-function decryptGHToken(enc, key) {
-  try {
-    const binary = atob(enc);
-    let result = '';
-    for (let i = 0; i < binary.length; i++) {
-      result += String.fromCharCode(binary.charCodeAt(i) ^ key.charCodeAt(i % key.length));
-    }
-    return result;
-  } catch (e) {
-    return '';
+function getRemainingLockout() {
+  const lockoutUntil = Number(sessionStorage.getItem(KM_LOGIN_LOCKOUT_KEY) || 0);
+  return Math.max(0, Math.ceil((lockoutUntil - Date.now()) / 1000));
+}
+
+function recordFailedAttempt() {
+  const attempts = Number(sessionStorage.getItem(KM_LOGIN_ATTEMPTS_KEY) || 0) + 1;
+  sessionStorage.setItem(KM_LOGIN_ATTEMPTS_KEY, String(attempts));
+  if (attempts >= 5) {
+    const lockUntil = Date.now() + 30000; // 30 segundos
+    sessionStorage.setItem(KM_LOGIN_LOCKOUT_KEY, String(lockUntil));
+    sessionStorage.setItem(KM_LOGIN_ATTEMPTS_KEY, '0');
   }
 }
 
+function clearLoginAttempts() {
+  sessionStorage.removeItem(KM_LOGIN_ATTEMPTS_KEY);
+  sessionStorage.removeItem(KM_LOGIN_LOCKOUT_KEY);
+}
+
 function getGitHubConfig() {
-  const defaultToken = decryptGHToken(ENCRYPTED_GH_KEY, ADMIN_PASSWORD_HASH);
   const defaults = {
-    token: defaultToken,
+    token: '',
     repo: 'abreumarcelo1994/kmorais',
     branch: 'main',
     path: 'content.json'
@@ -41,13 +58,12 @@ function getGitHubConfig() {
     const saved = localStorage.getItem(KM_GH_CONFIG_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      return Object.assign({}, defaults, parsed, {
-        token: parsed.token || defaults.token
-      });
+      return Object.assign({}, defaults, parsed);
     }
   } catch (e) {}
   return defaults;
 }
+
 
 function saveGitHubConfig(cfg) {
   try {
@@ -160,15 +176,38 @@ class KMAdminPanel {
     }
 
     if (this.loginForm) {
-      this.loginForm.addEventListener('submit', (e) => {
+      this.loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+
+        // Rate limiting: bloqueia se houve muitas tentativas erradas
+        if (isLoginLocked()) {
+          const secs = getRemainingLockout();
+          if (this.loginError) {
+            this.loginError.style.display = 'block';
+            this.loginError.textContent = `⏳ Muitas tentativas. Aguarde ${secs}s antes de tentar novamente.`;
+          }
+          return;
+        }
+
         const pwd = this.loginInput.value.trim();
-        if (pwd === ADMIN_PASSWORD_HASH) {
+        const pwdHash = await sha256(pwd);
+
+        if (pwdHash === ADMIN_PASSWORD_HASH) {
+          clearLoginAttempts();
           sessionStorage.setItem(AUTH_SESSION_KEY, 'true');
-          this.loginError.style.display = 'none';
+          if (this.loginError) this.loginError.style.display = 'none';
           this.unlockAdmin();
         } else {
-          this.loginError.style.display = 'block';
+          recordFailedAttempt();
+          if (this.loginError) {
+            this.loginError.style.display = 'block';
+            if (isLoginLocked()) {
+              this.loginError.textContent = '⛔ Acesso bloqueado por 30s após muitas tentativas erradas.';
+            } else {
+              const attempts = Number(sessionStorage.getItem(KM_LOGIN_ATTEMPTS_KEY) || 0);
+              this.loginError.textContent = `⚠️ Senha incorreta. Tentativa ${attempts}/5.`;
+            }
+          }
           this.loginInput.value = '';
           this.loginInput.focus();
         }
@@ -1114,7 +1153,7 @@ class KMAdminPanel {
 
     if (window.opener && !window.opener.closed) {
       try {
-        window.opener.postMessage({ type: 'CONTENT_UPDATED', data: contentToSave }, '*');
+        window.opener.postMessage({ type: 'CONTENT_UPDATED', data: contentToSave }, window.location.origin);
       } catch (err) {}
     }
 

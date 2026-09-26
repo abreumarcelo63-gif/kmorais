@@ -48,7 +48,7 @@ function serveFile(req, res, filePath) {
         'Accept-Ranges': 'bytes',
         'Content-Length': chunkSize,
         'Content-Type': contentType,
-        'Access-Control-Allow-Origin': '*'
+        'Access-Control-Allow-Origin': 'http://localhost:3000'
       });
 
       const stream = fs.createReadStream(filePath, { start, end });
@@ -61,7 +61,7 @@ function serveFile(req, res, filePath) {
       'Content-Type': contentType,
       'Content-Length': totalSize,
       'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Access-Control-Allow-Origin': '*'
+      'Access-Control-Allow-Origin': 'http://localhost:3000'
     });
 
     const stream = fs.createReadStream(filePath);
@@ -73,7 +73,7 @@ const server = http.createServer((req, res) => {
   // CORS Preflight
   if (req.method === 'OPTIONS') {
     res.writeHead(204, {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': 'http://localhost:3000',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': '*'
     });

@@ -31,4 +31,4 @@ Allow: /
 User-agent: Bingbot
 Allow: /
 
-Sitemap: https://abreumarcelo63-gif.github.io/kmorais/sitemap.xml
+Sitemap: https://abreumarcelo1994.github.io/kmorais/sitemap.xml

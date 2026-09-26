@@ -712,8 +712,10 @@ if (typeof window !== 'undefined') {
     }
   });
 
-  // 3. PostMessage (para comunicação quando aberta via popup/opener)
+  // 3. PostMessage (para comunicação quando aberta via popup/opener) — valida origem
   window.addEventListener('message', (event) => {
+    // Aceita apenas mensagens da mesma origem (mesmo domínio/localhost)
+    if (event.origin !== window.location.origin) return;
     if (event.data && event.data.type === 'CONTENT_UPDATED' && event.data.data) {
       kmCMS.data = event.data.data;
       kmCMS.applyToPage();
