@@ -75,16 +75,17 @@ function attachSoundButton(container, video) {
     <span class="icon-unmuted">${SOUND_ICON_UNMUTED}</span>
   `;
 
-  soundCtrl.appendChild(slider);
+  // Anexa soundBtn primeiro para ancorar no canto direito (flex row-reverse)
   soundCtrl.appendChild(soundBtn);
+  soundCtrl.appendChild(slider);
 
-  // Impede que clique, toque ou arrasto no controle acione o play/pause do card
-  const stopEvents = ['click', 'pointerdown', 'mousedown', 'touchstart', 'touchmove', 'touchend'];
-  stopEvents.forEach(evt => {
-    soundCtrl.addEventListener(evt, (e) => {
-      e.stopPropagation();
-    }, { passive: evt.startsWith('touch') });
-  });
+  // Impede que clique, toque ou arrasto no controle acione o play/pause do card ou arraste a tela
+  const stopProp = (e) => {
+    e.stopPropagation();
+  };
+  soundCtrl.addEventListener('click', stopProp);
+  soundCtrl.addEventListener('mousedown', stopProp);
+  soundCtrl.addEventListener('pointerdown', stopProp);
 
   const syncControlState = () => {
     if (video.muted || video.volume === 0) {
@@ -128,7 +129,6 @@ function attachSoundButton(container, video) {
   soundBtn.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
-    e.stopImmediatePropagation();
 
     video.muted = !video.muted;
     if (!video.muted) {
@@ -266,6 +266,7 @@ function setupDragToScroll(carousel, isVideo = false) {
 
   carousel.addEventListener('mousedown', (e) => {
     if (e.button !== 0) return; // Apenas botão principal (esquerdo)
+    if (e.target.closest('.video-sound-control') || e.target.closest('.video-sound-btn') || e.target.closest('.admin-edit-media-btn')) return;
     isDown = true;
     hasDragged = false;
     startX = e.pageX;

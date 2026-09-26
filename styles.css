@@ -573,51 +573,92 @@ video::-webkit-media-controls-panel {
   position: absolute;
   top: 10px;
   right: 10px;
-  z-index: 6;
-  display: inline-flex;
+  z-index: 10;
+  display: flex;
+  flex-direction: row-reverse;
   align-items: center;
-  gap: 0;
+  justify-content: flex-start;
   height: 34px;
+  width: 34px;
   border-radius: 17px;
-  background: rgba(30, 37, 34, 0.85);
+  background: rgba(30, 37, 34, 0.88);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.28);
-  padding: 0;
-  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), padding 0.3s ease, border-color 0.2s ease, background 0.2s ease;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
   overflow: hidden;
   user-select: none;
   -webkit-user-select: none;
+  transition: width 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, background 0.2s ease;
+  pointer-events: auto;
 }
 
-/* Quando mutado: compacto como botão circular de 34px */
+/* Quando mutado: exatamente 34px, mostrando apenas o botão */
 .video-sound-control:not(.is-unmuted) {
   width: 34px;
 }
 
-/* Quando desmutado: expande revelando o slider de volume */
+/* Quando desmutado: expande suavemente para 125px revelando o slider à esquerda */
 .video-sound-control.is-unmuted {
-  width: 116px;
-  padding: 0 4px 0 10px;
-  border-color: rgba(214, 238, 130, 0.55);
-  gap: 8px;
+  width: 125px;
+  border-color: rgba(214, 238, 130, 0.6);
+  background: rgba(30, 37, 34, 0.95);
 }
 
-/* Slider de Volume */
+/* Botão de Som dentro do controle (sempre ancorado na direita com 34px) */
+.video-sound-control .video-sound-btn {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  outline: none;
+  flex-shrink: 0;
+  transition: transform 0.2s ease, color 0.2s ease;
+  z-index: 2;
+}
+.video-sound-control .video-sound-btn:hover {
+  transform: scale(1.15);
+  color: var(--lime);
+}
+.video-sound-control.is-unmuted .video-sound-btn {
+  color: var(--lime);
+}
+.video-sound-control svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+  pointer-events: none;
+  display: block;
+}
+.video-sound-control .icon-unmuted { display: none; }
+.video-sound-control.is-unmuted .icon-muted { display: none; }
+.video-sound-control.is-unmuted .icon-unmuted { display: block; }
+
+/* Slider de Volume (fica à esquerda do botão) */
 .video-volume-slider {
   -webkit-appearance: none;
   appearance: none;
-  width: 58px;
+  width: 70px;
+  min-width: 70px;
   height: 4px;
   background: #485047;
   border-radius: 2px;
   outline: none;
-  margin: 0;
+  margin: 0 4px 0 10px;
   cursor: pointer;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.22s ease;
+  transition: opacity 0.2s ease;
+  flex-shrink: 0;
 }
 
 .video-sound-control.is-unmuted .video-volume-slider {
@@ -634,7 +675,7 @@ video::-webkit-media-controls-panel {
   border-radius: 50%;
   background: var(--lime);
   cursor: pointer;
-  box-shadow: 0 0 6px rgba(214, 238, 130, 0.7);
+  box-shadow: 0 0 6px rgba(214, 238, 130, 0.75);
   transition: transform 0.15s ease, background 0.15s ease;
 }
 .video-volume-slider::-webkit-slider-thumb:hover {
@@ -650,7 +691,7 @@ video::-webkit-media-controls-panel {
   background: var(--lime);
   border: none;
   cursor: pointer;
-  box-shadow: 0 0 6px rgba(214, 238, 130, 0.7);
+  box-shadow: 0 0 6px rgba(214, 238, 130, 0.75);
   transition: transform 0.15s ease;
 }
 .video-volume-slider::-moz-range-thumb:hover {
@@ -661,45 +702,6 @@ video::-webkit-media-controls-panel {
   background: var(--lime);
   border-radius: 2px;
 }
-
-/* Botão de Som dentro do controle */
-.video-sound-control .video-sound-btn {
-  position: static;
-  width: 32px;
-  height: 32px;
-  min-width: 32px;
-  border: none;
-  border-radius: 50%;
-  background: transparent;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  box-shadow: none;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  padding: 0;
-  transition: transform 0.2s ease, color 0.2s ease;
-  outline: none;
-}
-.video-sound-control .video-sound-btn:hover {
-  transform: scale(1.15);
-  color: var(--lime);
-}
-.video-sound-control.is-unmuted .video-sound-btn {
-  color: var(--lime);
-}
-.video-sound-control svg {
-  width: 15px;
-  height: 15px;
-  fill: currentColor;
-  pointer-events: none;
-  display: block;
-}
-.video-sound-control .icon-unmuted { display: none; }
-.video-sound-control.is-unmuted .icon-muted { display: none; }
-.video-sound-control.is-unmuted .icon-unmuted { display: block; }
 
 /* No frame do Hero */
 .hero-frame .video-sound-control {
