@@ -553,12 +553,109 @@ h1 em, h2 em { font-family: Georgia, serif; font-weight: 400; color: var(--coral
 .video-carousel::-webkit-scrollbar { display: none; }
 .video-carousel.is-pointer-dragging { cursor: grabbing !important; scroll-behavior: auto !important; }
 .video-carousel.is-pointer-dragging * { cursor: grabbing !important; pointer-events: none !important; user-select: none !important; }
-.video-card { flex: 0 0 clamp(190px, 18vw, 245px); aspect-ratio: 9/16; background: #d4d9d0; position: relative; overflow: hidden; transition: transform .35s ease, box-shadow .35s ease; border-radius: 4px; }
+.video-card { flex: 0 0 clamp(190px, 18vw, 245px); aspect-ratio: 9/16; background: #d4d9d0; position: relative; overflow: hidden; transition: transform .35s ease, box-shadow .35s ease; border-radius: 4px; cursor: pointer; }
 .video-card:hover { transform: translateY(-8px) rotate(-1deg); box-shadow: 12px 14px 0 var(--lime); }
 .video-card:after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(transparent 55%, rgba(0,0,0,.65)); opacity: .7; transition: opacity .3s ease; }
 .video-card.is-playing:after { opacity: .25; }
 .video-card video { cursor: pointer; width: 100%; height: 100%; object-fit: cover; display: block; }
 .video-play-badge { display: none !important; }
+
+/* Remove completamente qualquer controle nativo residual dos navegadores */
+video::-webkit-media-controls,
+video::-webkit-media-controls-enclosure,
+video::-webkit-media-controls-panel {
+  display: none !important;
+  -webkit-appearance: none;
+}
+
+/* === BOTÃO DE VOLUME MINIMALISTA ============================== */
+.video-sound-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 6;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(30, 37, 34, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  outline: none;
+}
+.video-sound-btn:hover {
+  transform: scale(1.12);
+  background: rgba(30, 37, 34, 0.95);
+  border-color: var(--lime);
+  color: var(--lime);
+}
+.video-sound-btn:focus-visible {
+  outline: 2px solid var(--lime);
+  outline-offset: 2px;
+}
+.video-sound-btn svg {
+  width: 15px;
+  height: 15px;
+  fill: currentColor;
+  pointer-events: none;
+  display: block;
+}
+.video-sound-btn .icon-unmuted { display: none; }
+.video-sound-btn.is-unmuted .icon-muted { display: none; }
+.video-sound-btn.is-unmuted .icon-unmuted { display: block; }
+.video-sound-btn.is-unmuted {
+  border-color: var(--lime);
+  color: var(--lime);
+}
+
+/* No frame do Hero */
+.hero-frame .video-sound-btn {
+  top: auto;
+  bottom: 14px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+}
+
+/* === PULSO VISUAL SUTIL AO CLICAR (FEEDBACK DE PLAY/PAUSE) ===== */
+.video-play-pulse {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.5);
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(30, 37, 34, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: transform 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.28s ease;
+  z-index: 5;
+}
+.video-play-pulse svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}
+.video-play-pulse.is-animating {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
 .video-meta { position: absolute; bottom: 15px; left: 15px; right: 15px; z-index: 1; display: flex; justify-content: space-between; color: #fff; text-transform: uppercase; letter-spacing: .1em; font: 9px var(--mono); pointer-events: none; }
 .carousel-button { position: absolute; z-index: 2; top: 50%; transform: translateY(-50%); width: 42px; height: 42px; border: 0; background: var(--lime); color: var(--ink); font-size: 20px; cursor: pointer; transition: background .2s, transform .2s; }
 .carousel-button:hover { background: var(--coral); }

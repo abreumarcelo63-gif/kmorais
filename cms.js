@@ -526,7 +526,14 @@ class KMCMS {
     // 9. Hero Video & Poster
     try {
       const heroVideo = document.querySelector('.hero-frame video');
+      const heroFrame = document.querySelector('.hero-frame');
       if (heroVideo) {
+        heroVideo.controls = false;
+        heroVideo.removeAttribute('controls');
+        heroVideo.muted = true;
+        if (typeof window !== 'undefined' && window.attachSoundButton && heroFrame) {
+          window.attachSoundButton(heroFrame, heroVideo);
+        }
         if (data.hero?.video) {
           const rawVideo = await kmMediaStore.resolveUrl(data.hero.video);
           const resolvedVideo = normalizeVideoUrl(rawVideo);
@@ -596,6 +603,12 @@ class KMCMS {
             metaSpan.innerHTML = item.label;
           }
           if (video) {
+            video.controls = false;
+            video.removeAttribute('controls');
+            video.muted = true;
+            if (typeof window !== 'undefined' && window.attachSoundButton) {
+              window.attachSoundButton(cards[idx], video);
+            }
             const src = video.querySelector('source');
             if (item.video) {
               const rawVideo = await kmMediaStore.resolveUrl(item.video);

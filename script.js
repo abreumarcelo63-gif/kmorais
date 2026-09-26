@@ -21,11 +21,96 @@ const workingPortfolioVideos = [
 ];
 
 
+/* === CONTROLES MINIMALISTAS DE VÍDEO (SEM CONTROLES NATIVOS) === */
+const SOUND_ICON_MUTED = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>`;
+const SOUND_ICON_UNMUTED = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>`;
+const PLAY_PULSE_ICON = `<svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="6 4 20 12 6 20 6 4"/></svg>`;
+const PAUSE_PULSE_ICON = `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>`;
+
+function showPlayPulse(container, isPlay) {
+  if (!container) return;
+  let pulse = container.querySelector('.video-play-pulse');
+  if (!pulse) {
+    pulse = document.createElement('div');
+    pulse.className = 'video-play-pulse';
+    container.appendChild(pulse);
+  }
+  pulse.innerHTML = isPlay ? PLAY_PULSE_ICON : PAUSE_PULSE_ICON;
+  pulse.classList.remove('is-animating');
+  void pulse.offsetWidth;
+  pulse.classList.add('is-animating');
+  clearTimeout(pulse._timer);
+  pulse._timer = setTimeout(() => pulse.classList.remove('is-animating'), 380);
+}
+
+function attachSoundButton(container, video) {
+  if (!container || !video || container.querySelector('.video-sound-btn')) return;
+
+  // Garante controles nativos do navegador removidos e som desligado por padrão
+  video.controls = false;
+  video.removeAttribute('controls');
+  video.muted = true;
+  video.playsInline = true;
+
+  const soundBtn = document.createElement('button');
+  soundBtn.type = 'button';
+  soundBtn.className = 'video-sound-btn';
+  soundBtn.setAttribute('aria-label', 'Ativar ou desativar áudio');
+  soundBtn.setAttribute('title', 'Som ligado/desligado');
+  soundBtn.innerHTML = `
+    <span class="icon-muted">${SOUND_ICON_MUTED}</span>
+    <span class="icon-unmuted">${SOUND_ICON_UNMUTED}</span>
+  `;
+
+  soundBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+
+    video.muted = !video.muted;
+    if (!video.muted) {
+      soundBtn.classList.add('is-unmuted');
+      // Muta todos os outros vídeos para tocar apenas o selecionado
+      document.querySelectorAll('video').forEach(other => {
+        if (other !== video) {
+          other.muted = true;
+          const otherBtn = other.closest('.video-card, .hero-frame')?.querySelector('.video-sound-btn');
+          if (otherBtn) otherBtn.classList.remove('is-unmuted');
+        }
+      });
+      // Se estava pausado ao desmutar, inicia reprodução
+      if (video.paused) {
+        video.play().catch(() => {});
+      }
+    } else {
+      soundBtn.classList.remove('is-unmuted');
+    }
+  });
+
+  video.addEventListener('volumechange', () => {
+    if (video.muted) soundBtn.classList.remove('is-unmuted');
+    else soundBtn.classList.add('is-unmuted');
+  });
+
+  container.appendChild(soundBtn);
+}
+window.attachSoundButton = attachSoundButton;
+window.showPlayPulse = showPlayPulse;
+
 document.querySelectorAll('.video-card').forEach((card, index) => {
   const video = card.querySelector('video');
   if (!video) return;
 
-  // Garante fonte funcional de vídeo caso ainda aponte para Coverr 403
+  // Garante controles nativos escondidos e som off por padrão
+  video.controls = false;
+  video.removeAttribute('controls');
+  video.muted = true;
+  video.playsInline = true;
+
+  // Anexa botão de volume minimalista
+  attachSoundButton(card, video);
+
+  // Garante fonte funcional de vídeo caso aponte para URL legada
   const source = video.querySelector('source');
   const targetVideoUrl = workingPortfolioVideos[index % workingPortfolioVideos.length];
   if (!source || !source.src || source.src.includes('coverr-main')) {
@@ -41,7 +126,7 @@ document.querySelectorAll('.video-card').forEach((card, index) => {
     video.poster = currentPortfolioCovers[index % currentPortfolioCovers.length];
   }
 
-  // Remove eventual badge legada de Play para não conflitar com player nativo
+  // Remove eventual badge legada de Play para não conflitar com player
   const existingBadge = card.querySelector('.video-play-badge');
   if (existingBadge) {
     existingBadge.remove();
@@ -53,9 +138,16 @@ document.querySelectorAll('.video-card').forEach((card, index) => {
   video.addEventListener('ended', () => card.classList.remove('is-playing'));
 });
 
-// Inicialização do vídeo Hero
+// Inicialização do vídeo Hero com player customizado
 const heroVideo = document.querySelector('.hero-frame video');
-if (heroVideo) {
+const heroFrame = document.querySelector('.hero-frame');
+if (heroVideo && heroFrame) {
+  heroVideo.controls = false;
+  heroVideo.removeAttribute('controls');
+  heroVideo.muted = true;
+  heroVideo.playsInline = true;
+  attachSoundButton(heroFrame, heroVideo);
+
   const heroSource = heroVideo.querySelector('source');
   if (!heroSource || !heroSource.src || heroSource.src.includes('coverr-main')) {
     const defHero = 'https://res.cloudinary.com/demo/video/upload/q_auto,w_600/sea_turtle.mp4';
@@ -64,6 +156,19 @@ if (heroVideo) {
     heroVideo.load();
     heroVideo.play().catch(() => {});
   }
+
+  // Clique em qualquer canto do Hero dá play/pause
+  heroFrame.style.cursor = 'pointer';
+  heroFrame.addEventListener('click', (e) => {
+    if (e.target.closest('.video-sound-btn') || e.target.closest('.admin-edit-media-btn')) return;
+    if (heroVideo.paused) {
+      document.querySelectorAll('.video-card video').forEach(v => { if (!v.paused) v.pause(); });
+      heroVideo.play().then(() => showPlayPulse(heroFrame, true)).catch(() => {});
+    } else {
+      heroVideo.pause();
+      showPlayPulse(heroFrame, false);
+    }
+  });
 }
 
 const latestInstagramPosts = [
@@ -146,6 +251,11 @@ function setupDragToScroll(carousel, isVideo = false) {
       const card = e.target.closest('.video-card');
       if (!card) return;
 
+      // Clicou no botão de volume ou no botão de editar no admin: ignora play/pause do card
+      if (e.target.closest('.video-sound-btn') || e.target.closest('.admin-edit-media-btn')) {
+        return;
+      }
+
       // Se for link de rede social externa (ex: Reel do Instagram ou TikTok), abre no clique
       if (card.dataset.externalUrl) {
         window.open(card.dataset.externalUrl, '_blank');
@@ -156,20 +266,23 @@ function setupDragToScroll(carousel, isVideo = false) {
       if (!video) return;
 
       if (video.paused) {
-        // Pausa outros vídeos para evitar áudio/reprodução simultânea
-        document.querySelectorAll('.video-card video').forEach((other) => {
+        // Pausa outros vídeos para evitar reprodução/áudio simultâneo
+        document.querySelectorAll('video').forEach((other) => {
           if (other !== video && !other.paused) other.pause();
         });
         const playPromise = video.play();
         if (playPromise !== undefined) {
-          playPromise.catch((err) => {
+          playPromise.then(() => {
+            showPlayPulse(card, true);
+          }).catch((err) => {
             console.warn('Playback bloqueado por política de áudio, tentando muted:', err);
             video.muted = true;
-            video.play().catch((e) => console.error('Erro na reprodução do vídeo:', e));
+            video.play().then(() => showPlayPulse(card, true)).catch((e) => console.error('Erro na reprodução do vídeo:', e));
           });
         }
       } else {
         video.pause();
+        showPlayPulse(card, false);
       }
     }
   }, true);
