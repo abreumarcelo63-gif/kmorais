@@ -33,7 +33,7 @@ function getGitHubConfig() {
   const defaultToken = decryptGHToken(ENCRYPTED_GH_KEY, ADMIN_PASSWORD_HASH);
   const defaults = {
     token: defaultToken,
-    repo: 'abreumarcelo63-gif/kmorais',
+    repo: 'abreumarcelo1994/kmorais',
     branch: 'main',
     path: 'content.json'
   };
@@ -1199,7 +1199,7 @@ class KMAdminPanel {
     const openModal = () => {
       const cfg = getGitHubConfig();
       if (ghTokenInput) ghTokenInput.value = cfg.token || '';
-      if (ghRepoInput) ghRepoInput.value = cfg.repo || 'abreumarcelo63-gif/kmorais';
+      if (ghRepoInput) ghRepoInput.value = cfg.repo || 'abreumarcelo1994/kmorais';
       if (ghBranchInput) ghBranchInput.value = cfg.branch || 'main';
       if (ghPathInput) ghPathInput.value = cfg.path || 'content.json';
       if (ghStatusEl) {
@@ -1237,7 +1237,7 @@ class KMAdminPanel {
     if (ghSaveConfigBtn) {
       ghSaveConfigBtn.addEventListener('click', () => {
         const token = ghTokenInput?.value.trim() || '';
-        const repo = ghRepoInput?.value.trim() || 'abreumarcelo63-gif/kmorais';
+        const repo = ghRepoInput?.value.trim() || 'abreumarcelo1994/kmorais';
         const branch = ghBranchInput?.value.trim() || 'main';
         const path = ghPathInput?.value.trim() || 'content.json';
 
