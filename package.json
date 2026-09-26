@@ -1,0 +1,21 @@
+{
+  "name": "kmorais",
+  "version": "1.0.0",
+  "description": "Portfólio oficial e CMS de Kelly Morais UGC",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "serve": "node server.js",
+    "test": "node -c script.js cms.js admin.js server.js"
+  },
+  "keywords": [
+    "ugc",
+    "creator",
+    "portfolio",
+    "marketing",
+    "cms"
+  ],
+  "author": "Kelly Morais",
+  "license": "ISC"
+}
