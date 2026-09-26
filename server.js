@@ -106,3 +106,4 @@ server.listen(PORT, () => {
   console.log(`👉 Painel Admin (CMS): http://localhost:${PORT}/admin.html`);
   console.log('----------------------------------------------------');
 });
+
