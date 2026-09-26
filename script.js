@@ -44,13 +44,26 @@ function showPlayPulse(container, isPlay) {
 }
 
 function attachSoundButton(container, video) {
-  if (!container || !video || container.querySelector('.video-sound-btn')) return;
+  if (!container || !video || container.querySelector('.video-sound-control')) return;
 
   // Garante controles nativos do navegador removidos e som desligado por padrão
   video.controls = false;
   video.removeAttribute('controls');
   video.muted = true;
   video.playsInline = true;
+
+  const soundCtrl = document.createElement('div');
+  soundCtrl.className = 'video-sound-control';
+
+  const slider = document.createElement('input');
+  slider.type = 'range';
+  slider.className = 'video-volume-slider';
+  slider.min = '0';
+  slider.max = '1';
+  slider.step = '0.05';
+  slider.value = String(video.volume || 0.8);
+  slider.setAttribute('aria-label', 'Ajustar volume');
+  slider.setAttribute('title', 'Ajustar volume');
 
   const soundBtn = document.createElement('button');
   soundBtn.type = 'button';
@@ -62,6 +75,56 @@ function attachSoundButton(container, video) {
     <span class="icon-unmuted">${SOUND_ICON_UNMUTED}</span>
   `;
 
+  soundCtrl.appendChild(slider);
+  soundCtrl.appendChild(soundBtn);
+
+  // Impede que clique, toque ou arrasto no controle acione o play/pause do card
+  const stopEvents = ['click', 'pointerdown', 'mousedown', 'touchstart', 'touchmove', 'touchend'];
+  stopEvents.forEach(evt => {
+    soundCtrl.addEventListener(evt, (e) => {
+      e.stopPropagation();
+    }, { passive: evt.startsWith('touch') });
+  });
+
+  const syncControlState = () => {
+    if (video.muted || video.volume === 0) {
+      soundCtrl.classList.remove('is-unmuted');
+      slider.value = '0';
+    } else {
+      soundCtrl.classList.add('is-unmuted');
+      slider.value = String(video.volume);
+    }
+  };
+
+  // Ajuste em tempo real ao mover o slider
+  const onSliderChange = (e) => {
+    e.stopPropagation();
+    const val = parseFloat(slider.value);
+    video.volume = val;
+    if (val === 0) {
+      video.muted = true;
+      soundCtrl.classList.remove('is-unmuted');
+    } else {
+      video.muted = false;
+      soundCtrl.classList.add('is-unmuted');
+      // Muta todos os outros vídeos
+      document.querySelectorAll('video').forEach(other => {
+        if (other !== video) {
+          other.muted = true;
+          const otherCtrl = other.closest('.video-card, .hero-frame')?.querySelector('.video-sound-control');
+          if (otherCtrl) otherCtrl.classList.remove('is-unmuted');
+        }
+      });
+      if (video.paused) {
+        video.play().catch(() => {});
+      }
+    }
+  };
+
+  slider.addEventListener('input', onSliderChange);
+  slider.addEventListener('change', onSliderChange);
+
+  // Clique no botão alterna entre mudo e volume ativo
   soundBtn.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -69,30 +132,31 @@ function attachSoundButton(container, video) {
 
     video.muted = !video.muted;
     if (!video.muted) {
-      soundBtn.classList.add('is-unmuted');
-      // Muta todos os outros vídeos para tocar apenas o selecionado
+      if (video.volume === 0) {
+        video.volume = 0.8;
+      }
+      slider.value = String(video.volume);
+      soundCtrl.classList.add('is-unmuted');
+
+      // Muta todos os outros vídeos
       document.querySelectorAll('video').forEach(other => {
         if (other !== video) {
           other.muted = true;
-          const otherBtn = other.closest('.video-card, .hero-frame')?.querySelector('.video-sound-btn');
-          if (otherBtn) otherBtn.classList.remove('is-unmuted');
+          const otherCtrl = other.closest('.video-card, .hero-frame')?.querySelector('.video-sound-control');
+          if (otherCtrl) otherCtrl.classList.remove('is-unmuted');
         }
       });
-      // Se estava pausado ao desmutar, inicia reprodução
       if (video.paused) {
         video.play().catch(() => {});
       }
     } else {
-      soundBtn.classList.remove('is-unmuted');
+      soundCtrl.classList.remove('is-unmuted');
     }
   });
 
-  video.addEventListener('volumechange', () => {
-    if (video.muted) soundBtn.classList.remove('is-unmuted');
-    else soundBtn.classList.add('is-unmuted');
-  });
+  video.addEventListener('volumechange', syncControlState);
 
-  container.appendChild(soundBtn);
+  container.appendChild(soundCtrl);
 }
 window.attachSoundButton = attachSoundButton;
 window.showPlayPulse = showPlayPulse;
@@ -163,7 +227,7 @@ if (heroVideo && heroFrame) {
   // Clique em qualquer canto do Hero dá play/pause
   heroFrame.style.cursor = 'pointer';
   heroFrame.addEventListener('click', (e) => {
-    if (e.target.closest('.video-sound-btn') || e.target.closest('.admin-edit-media-btn')) return;
+    if (e.target.closest('.video-sound-control') || e.target.closest('.video-sound-btn') || e.target.closest('.admin-edit-media-btn')) return;
     if (heroVideo.paused) {
       document.querySelectorAll('.video-card video').forEach(v => { if (!v.paused) v.pause(); });
       heroVideo.play().then(() => showPlayPulse(heroFrame, true)).catch(() => {});
@@ -254,8 +318,8 @@ function setupDragToScroll(carousel, isVideo = false) {
       const card = e.target.closest('.video-card');
       if (!card) return;
 
-      // Clicou no botão de volume ou no botão de editar no admin: ignora play/pause do card
-      if (e.target.closest('.video-sound-btn') || e.target.closest('.admin-edit-media-btn')) {
+      // Clicou no controle de volume ou no botão de editar no admin: ignora play/pause do card
+      if (e.target.closest('.video-sound-control') || e.target.closest('.video-sound-btn') || e.target.closest('.admin-edit-media-btn')) {
         return;
       }
 
