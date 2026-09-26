@@ -2,8 +2,9 @@
  * KMORAIS - Painel de Controle Administrativo (In-Place Editor)
  */
 
-// Hash SHA-256 da senha de acesso — a senha nunca fica em texto puro no código.
-const ADMIN_PASSWORD_HASH = '46377033dd07574aaba090dcb5e33bb9aaf082ac4d80adba57c023de5c5f8cb3';
+// Hash SHA-256 com salt da senha de acesso — impossibilita busca reversa via rainbow tables.
+const ADMIN_PASSWORD_HASH = '0fd9ddc5fb9841753611f6ccaf3624c018fce055f9ad907dc51c2c48578d3d4b';
+const ADMIN_SALT = ':km_salt_v2_9f8b2c';
 const AUTH_SESSION_KEY = 'km_admin_authenticated';
 const KM_GH_CONFIG_KEY = 'km_github_sync_config_v1';
 const KM_LOGIN_ATTEMPTS_KEY = 'km_admin_login_attempts';
@@ -192,7 +193,7 @@ class KMAdminPanel {
         }
 
         const pwd = this.loginInput.value.trim();
-        const pwdHash = await sha256(pwd);
+        const pwdHash = await sha256(pwd + ADMIN_SALT);
 
         if (pwdHash === ADMIN_PASSWORD_HASH) {
           clearLoginAttempts();

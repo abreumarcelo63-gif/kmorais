@@ -1,7 +1,6 @@
 # Robots.txt - Kelly Morais UGC Portfolio
 User-agent: *
 Allow: /
-Disallow: /admin.html
 
 # AI & LLM Search Engine Bots (Explicitly Allowed for Indexing & GEO)
 User-agent: Googlebot

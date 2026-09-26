@@ -25,6 +25,16 @@ function normalizeVideoUrl(url) {
   return url;
 }
 
+// Sanitizador anti-XSS para renderização segura de textos e tags básicas do CMS
+function sanitizeHtml(str) {
+  if (typeof str !== 'string') return '';
+  return str
+    .replace(/<\s*(?:script|iframe|object|embed|applet|meta|link|style)[^>]*>[\s\S]*?<\s*\/\s*(?:script|iframe|object|embed|applet|meta|link|style)\s*>/gi, '')
+    .replace(/<\s*(?:script|iframe|object|embed|applet|meta|link|style)[^>]*>/gi, '')
+    .replace(/\s+on[a-z]+\s*=\s*(?:'[^']*'|"[^"]*"|[^\s>]+)/gi, '')
+    .replace(/javascript:/gi, '');
+}
+
 // Função utilitária de Deep Merge para preservar propriedades aninhadas e padrões
 function deepMerge(target, source) {
   if (!source || typeof source !== 'object') return target;
@@ -365,22 +375,22 @@ class KMCMS {
     try {
       const heroEyebrow = document.querySelector('.hero-copy .eyebrow');
       if (heroEyebrow && data.hero?.eyebrow) {
-        heroEyebrow.innerHTML = `<span class="eyebrow-line"></span> ${data.hero.eyebrow}`;
+        heroEyebrow.innerHTML = `<span class="eyebrow-line"></span> ${sanitizeHtml(data.hero.eyebrow)}`;
       }
 
       const heroTitle = document.querySelector('#hero-title');
       if (heroTitle && data.hero?.title) {
-        heroTitle.innerHTML = data.hero.title;
+        heroTitle.innerHTML = sanitizeHtml(data.hero.title);
       }
 
       const heroText = document.querySelector('.hero-text');
       if (heroText && data.hero?.text) {
-        heroText.innerHTML = data.hero.text;
+        heroText.innerHTML = sanitizeHtml(data.hero.text);
       }
 
       const heroSticker = document.querySelector('.hero-sticker');
       if (heroSticker && data.hero?.sticker) {
-        heroSticker.innerHTML = data.hero.sticker;
+        heroSticker.innerHTML = sanitizeHtml(data.hero.sticker);
       }
     } catch (e) {
       console.error('CMS: Erro ao aplicar textos do Hero', e);
@@ -390,7 +400,7 @@ class KMCMS {
     try {
       const brandsTitle = document.querySelector('#brands-title');
       if (brandsTitle && data.brandsTitle) {
-        brandsTitle.innerHTML = data.brandsTitle;
+        brandsTitle.innerHTML = sanitizeHtml(data.brandsTitle);
       }
     } catch (e) {
       console.error('CMS: Erro ao aplicar título de Marcas', e);
@@ -400,12 +410,12 @@ class KMCMS {
     try {
       const portfolioTitle = document.querySelector('#portfolio-title');
       if (portfolioTitle && data.portfolioTitle) {
-        portfolioTitle.innerHTML = data.portfolioTitle;
+        portfolioTitle.innerHTML = sanitizeHtml(data.portfolioTitle);
       }
 
       const portfolioIntro = document.querySelector('.portfolio .section-intro') || document.querySelector('.section-intro');
       if (portfolioIntro && data.portfolioIntro) {
-        portfolioIntro.innerHTML = data.portfolioIntro;
+        portfolioIntro.innerHTML = sanitizeHtml(data.portfolioIntro);
       }
     } catch (e) {
       console.error('CMS: Erro ao aplicar textos do Portfólio', e);
@@ -422,9 +432,9 @@ class KMCMS {
           const tag = el.querySelector('.real-case-content span');
           const title = el.querySelector('.real-case-content h3');
           const desc = el.querySelector('.real-case-content p');
-          if (tag && item.tag) tag.innerHTML = item.tag;
-          if (title && item.title) title.innerHTML = item.title;
-          if (desc && item.desc) desc.innerHTML = item.desc;
+          if (tag && item.tag) tag.innerHTML = sanitizeHtml(item.tag);
+          if (title && item.title) title.innerHTML = sanitizeHtml(item.title);
+          if (desc && item.desc) desc.innerHTML = sanitizeHtml(item.desc);
         });
       }
     } catch (e) {
@@ -441,7 +451,7 @@ class KMCMS {
           if (post.link) card.href = post.link;
           const span = card.querySelector('span');
           if (span && post.label) {
-            span.innerHTML = `${post.label} <b>&#8599;</b>`;
+            span.innerHTML = `${sanitizeHtml(post.label)} <b>&#8599;</b>`;
           }
         });
       }
@@ -453,7 +463,7 @@ class KMCMS {
     try {
       const servTitle = document.querySelector('#services-title');
       if (servTitle && data.servicesTitle) {
-        servTitle.innerHTML = data.servicesTitle;
+        servTitle.innerHTML = sanitizeHtml(data.servicesTitle);
       }
       if (data.servicesList && Array.isArray(data.servicesList)) {
         const serviceCards = document.querySelectorAll('.service-card');
@@ -462,8 +472,8 @@ class KMCMS {
           const card = serviceCards[idx];
           const h3 = card.querySelector('h3');
           const p = card.querySelector('p');
-          if (h3 && s.title) h3.innerHTML = s.title;
-          if (p && s.text) p.innerHTML = s.text;
+          if (h3 && s.title) h3.innerHTML = sanitizeHtml(s.title);
+          if (p && s.text) p.innerHTML = sanitizeHtml(s.text);
         });
       }
     } catch (e) {
@@ -474,12 +484,12 @@ class KMCMS {
     try {
       const aboutTitle = document.querySelector('#about-title');
       if (aboutTitle && data.about?.title) {
-        aboutTitle.innerHTML = data.about.title;
+        aboutTitle.innerHTML = sanitizeHtml(data.about.title);
       }
 
       const aboutContentP = document.querySelector('.about-content p:nth-of-type(2)');
       if (aboutContentP && data.about?.bio) {
-        aboutContentP.innerHTML = data.about.bio;
+        aboutContentP.innerHTML = sanitizeHtml(data.about.bio);
       }
     } catch (e) {
       console.error('CMS: Erro ao aplicar textos da seção Sobre', e);
@@ -489,7 +499,7 @@ class KMCMS {
     try {
       const contactTitle = document.querySelector('#contact-title');
       if (contactTitle && data.contact?.title) {
-        contactTitle.innerHTML = data.contact.title;
+        contactTitle.innerHTML = sanitizeHtml(data.contact.title);
       }
 
       if (data.contact?.email) {
