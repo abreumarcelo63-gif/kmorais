@@ -301,8 +301,11 @@ class KMCMS {
 
   async fetchPublishedContent() {
     if (typeof window === 'undefined' || typeof fetch === 'undefined') return null;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
     try {
-      const res = await fetch(`content.json?_t=${Date.now()}`);
+      const res = await fetch(`content.json?_t=${Date.now()}`, { signal: controller.signal });
+      clearTimeout(timeoutId);
       if (!res.ok) return null;
       const published = await res.json();
       if (!published || typeof published !== 'object') return null;
@@ -324,6 +327,10 @@ class KMCMS {
       }
       return published;
     } catch (err) {
+      clearTimeout(timeoutId);
+      if (err.name !== 'AbortError') {
+        console.warn('CMS: Falha ao buscar conteúdo publicado', err);
+      }
       return null;
     }
   }

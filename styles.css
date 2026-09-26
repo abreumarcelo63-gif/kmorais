@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
+/* Google Fonts é carregada via <link rel="preload"> no HTML — sem @import aqui para evitar double-fetch */
 
 /* === TOKENS =================================================== */
 :root {
@@ -16,11 +16,15 @@
   --display: 'Space Grotesk', sans-serif;
   --body:    'Manrope', sans-serif;
   --mono:    'DM Mono', monospace;
+  --sans:    'Manrope', sans-serif; /* alias de compatibilidade com admin.css */
 }
 
 /* === RESET ==================================================== */
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+/* smooth scroll com respeito a prefers-reduced-motion */
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+}
 body { margin: 0; color: var(--ink); background: var(--paper); font-family: var(--body); overflow-x: hidden; }
 a { color: inherit; text-decoration: none; }
 h1, h2, h3, p { margin-top: 0; }
@@ -1289,4 +1293,68 @@ body::before {
   margin-top: 8px;
   width: 100%;
   padding: 14px;
+}
+
+/* === FOCO VISÍVEL (Acessibilidade de teclado) ================= */
+:focus-visible {
+  outline: 2px solid var(--coral);
+  outline-offset: 3px;
+}
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--coral);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* === SCROLL SNAP nos Carrosséis =============================== */
+.video-carousel,
+.photo-carousel {
+  scroll-snap-type: x mandatory;
+}
+.video-card,
+.photo-card {
+  scroll-snap-align: start;
+}
+
+/* === WILL-CHANGE — performance de animação ==================== */
+.real-case,
+.photo-card,
+.video-card,
+.service-card,
+.brand-pill-circle {
+  will-change: transform;
+}
+
+/* === CONTENT-VISIBILITY — seções off-screen =================== */
+.brands-section,
+.services,
+.agency-section,
+.process,
+.real-cases,
+.latest-posts {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 400px;
+}
+
+/* === MOBILE NAV — visibilidade para teclado =================== */
+.mobile-nav {
+  visibility: hidden;
+}
+.mobile-nav.is-open {
+  visibility: visible;
+}
+
+/* === PREFERS REDUCED MOTION — desativa animações pesadas ======= */
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track { animation-play-state: paused; }
+  .real-case,
+  .photo-card,
+  .video-card,
+  .brand-pill-circle,
+  .service-card { transition: none; }
+  .reveal { transition: none !important; }
 }

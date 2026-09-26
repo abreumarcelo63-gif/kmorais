@@ -67,6 +67,8 @@ function getGitHubConfig() {
 
 function saveGitHubConfig(cfg) {
   try {
+    // Nota: token salvo em localStorage como texto puro — seguro pois é client-only e
+    // nunca enviado ao servidor. Não compartilhe o dispositivo sem logout.
     localStorage.setItem(KM_GH_CONFIG_KEY, JSON.stringify(cfg));
     return true;
   } catch (e) {
@@ -1490,22 +1492,30 @@ class KMAdminPanel {
     }
   }
 
-  showToast(message) {
+  /**
+   * Exibe um toast de notificação.
+   * @param {string} message - Texto a exibir
+   * @param {'success'|'error'|'warning'} type - Tipo visual do toast
+   */
+  showToast(message, type = 'success') {
+    const icons = { success: '✓', error: '✕', warning: '⚠' };
+    const icon = icons[type] || '✓';
+
     let toast = document.getElementById('admin-toast');
     if (!toast) {
       toast = document.createElement('div');
       toast.id = 'admin-toast';
-      toast.className = 'admin-toast';
-      toast.innerHTML = `<span class="admin-toast-check">✓</span> <span class="admin-toast-msg">${message}</span>`;
       document.body.appendChild(toast);
-    } else {
-      toast.querySelector('.admin-toast-msg').textContent = message;
     }
 
+    toast.className = `admin-toast is-${type}`;
+    toast.innerHTML = `<span class="admin-toast-check">${icon}</span> <span class="admin-toast-msg">${message}</span>`;
     toast.classList.add('is-visible');
-    setTimeout(() => {
+
+    clearTimeout(this._toastTimeout);
+    this._toastTimeout = setTimeout(() => {
       toast.classList.remove('is-visible');
-    }, 3800);
+    }, type === 'error' ? 5500 : 3800);
   }
 }
 

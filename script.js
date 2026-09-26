@@ -1,25 +1,16 @@
 const carousels = document.querySelectorAll('[data-carousel]');
+
+/* Covers de fallback — usados apenas quando o CMS não tem imagem configurada */
 const currentPortfolioCovers = [
   'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=700&q=85&auto=format&fit=crop',
   'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=700&q=85&auto=format&fit=crop',
   'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=700&q=85&auto=format&fit=crop',
   'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=700&q=85&auto=format&fit=crop',
   'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=700&q=85&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=700&q=85&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=700&q=85&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=700&q=85&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=700&q=85&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=700&q=85&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=700&q=85&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=700&q=85&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=700&q=85&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=700&q=85&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1544717305-2782549b5136?w=700&q=85&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=700&q=85&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=700&q=85&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=700&q=85&auto=format&fit=crop'
+  'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=700&q=85&auto=format&fit=crop'
 ];
 
+/* Vídeos de fallback para o portfólio */
 const workingPortfolioVideos = [
   'https://res.cloudinary.com/demo/video/upload/q_auto,w_400/sea_turtle.mp4',
   'https://res.cloudinary.com/demo/video/upload/q_auto,w_400/finish_line.mp4',
@@ -28,6 +19,7 @@ const workingPortfolioVideos = [
   'https://res.cloudinary.com/demo/video/upload/q_auto,w_400/snow_deer.mp4',
   'https://res.cloudinary.com/demo/video/upload/q_auto,w_400/elephants.mp4'
 ];
+
 
 document.querySelectorAll('.video-card').forEach((card, index) => {
   const video = card.querySelector('video');
@@ -371,55 +363,67 @@ window.addEventListener('resize', updateHeaderVisibility, { passive: true });
 updateHeaderVisibility();
 
 /* === FORMULÁRIO — Web3Forms ====================================
-   Os e-mails chegam direto no Gmail da Kelly.
-   Chave: 72be698d-2c19-4070-9187-73227c85fc02
+   Os e-mails chegam direto no Gmail da Kelly via Web3Forms.
    ============================================================= */
-const briefingForm = document.querySelector('.briefing-form');
-if (briefingForm) {
-  briefingForm.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const submitBtn = briefingForm.querySelector('button[type="submit"]');
-    const originalBtnText = submitBtn.innerHTML;
 
-    // Estado de loading
-    submitBtn.innerHTML = 'Enviando… <span aria-hidden="true">↻</span>';
-    submitBtn.disabled = true;
+/**
+ * Envia um formulário para a API Web3Forms de forma assíncrona.
+ * @param {HTMLFormElement} form - Formulário a ser enviado
+ * @param {string} successHTML  - HTML a ser exibido após envio bem-sucedido
+ */
+async function submitWeb3Form(form, successHTML) {
+  const submitBtn = form.querySelector('button[type="submit"]');
+  const originalBtnText = submitBtn.innerHTML;
 
-    try {
-      const formData = new FormData(briefingForm);
-      const data = Object.fromEntries(formData.entries());
+  submitBtn.innerHTML = 'Enviando… <span aria-hidden="true">↻</span>';
+  submitBtn.disabled = true;
 
-      const response = await fetch('https://api.web3forms.com/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify(data)
-      });
-      const result = await response.json();
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      if (result.success) {
-        // Sucesso — substituir formulário por mensagem
-        briefingForm.innerHTML = `
-          <div class="form-success">
-            <span class="form-check">✓</span>
-            <p>Briefing recebido!</p>
-            <small>Já caiu na minha caixa de entrada. Em breve entro em contato.<br>Prefere ir direto? <a href="mailto:marketing.kellymorais@gmail.com">marketing.kellymorais@gmail.com</a></small>
-          </div>
-        `;
-      } else {
-        // Erro da API — restaurar botão
-        submitBtn.innerHTML = 'Tentar novamente <span aria-hidden="true">↻</span>';
-        submitBtn.disabled = false;
-        console.warn('Web3Forms error:', result);
-      }
-    } catch (error) {
-      // Erro de rede — restaurar botão
-      submitBtn.innerHTML = originalBtnText;
+  try {
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+
+    const response = await fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(data),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    const result = await response.json();
+
+    if (result.success) {
+      form.innerHTML = successHTML;
+    } else {
+      submitBtn.innerHTML = 'Tentar novamente <span aria-hidden="true">↻</span>';
       submitBtn.disabled = false;
+      console.warn('Web3Forms error:', result);
+    }
+  } catch (error) {
+    clearTimeout(timeoutId);
+    submitBtn.innerHTML = originalBtnText;
+    submitBtn.disabled = false;
+    if (error.name !== 'AbortError') {
       console.error('Erro ao enviar:', error);
     }
-  });
+  }
 }
 
+const briefingForm = document.querySelector('.briefing-form');
+if (briefingForm) {
+  briefingForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    submitWeb3Form(briefingForm, `
+      <div class="form-success">
+        <span class="form-check">✓</span>
+        <p>Briefing recebido!</p>
+        <small>Já caiu na minha caixa de entrada. Em breve entro em contato.<br>Prefere ir direto? <a href="mailto:marketing.kellymorais@gmail.com">marketing.kellymorais@gmail.com</a></small>
+      </div>
+    `);
+  });
+}
 
 /* === HAMBURGER MENU =========================================== */
 const navToggle = document.querySelector('.nav-toggle');
@@ -526,42 +530,14 @@ document.addEventListener('keydown', (e) => {
 // Envio assíncrono do formulário dentro do popup modal
 const modalBriefingForm = document.querySelector('.modal-briefing-form');
 if (modalBriefingForm) {
-  modalBriefingForm.addEventListener('submit', async (event) => {
+  modalBriefingForm.addEventListener('submit', (event) => {
     event.preventDefault();
-    const submitBtn = modalBriefingForm.querySelector('button[type="submit"]');
-    const originalBtnText = submitBtn.innerHTML;
-
-    submitBtn.innerHTML = 'Enviando… <span aria-hidden="true">↻</span>';
-    submitBtn.disabled = true;
-
-    try {
-      const formData = new FormData(modalBriefingForm);
-      const data = Object.fromEntries(formData.entries());
-
-      const response = await fetch('https://api.web3forms.com/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify(data)
-      });
-      const result = await response.json();
-
-      if (result.success) {
-        modalBriefingForm.innerHTML = `
-          <div class="form-success" style="padding: 20px 0; text-align: center;">
-            <span class="form-check" style="margin: 0 auto 10px;">✓</span>
-            <p style="font-size: 18px;">Briefing recebido!</p>
-            <small style="display: block; margin-top: 8px;">Chegou direto na caixa de entrada da Kelly.<br>Em breve ela responderá sua proposta!</small>
-          </div>
-        `;
-      } else {
-        submitBtn.innerHTML = 'Tentar novamente <span aria-hidden="true">↻</span>';
-        submitBtn.disabled = false;
-        console.warn('Web3Forms error:', result);
-      }
-    } catch (error) {
-      submitBtn.innerHTML = originalBtnText;
-      submitBtn.disabled = false;
-      console.error('Erro ao enviar:', error);
-    }
+    submitWeb3Form(modalBriefingForm, `
+      <div class="form-success" style="padding: 20px 0; text-align: center;">
+        <span class="form-check" style="margin: 0 auto 10px;">✓</span>
+        <p style="font-size: 18px;">Briefing recebido!</p>
+        <small style="display: block; margin-top: 8px;">Chegou direto na caixa de entrada da Kelly.<br>Em breve ela responderá sua proposta!</small>
+      </div>
+    `);
   });
 }
