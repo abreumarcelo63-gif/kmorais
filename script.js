@@ -121,8 +121,11 @@ document.querySelectorAll('.video-card').forEach((card, index) => {
     video.load();
   }
 
-  // Se o poster for ausente ou do Canva, define foto Unsplash
-  if (!video.poster || video.poster.includes('canva.site')) {
+  // Se houver poster configurado no CMS, utiliza-o de imediato; caso contrário, fallback Unsplash
+  const cmsPoster = window.kmCMS?.data?.portfolioVideos?.[index]?.poster;
+  if (cmsPoster && !cmsPoster.startsWith('idb:')) {
+    video.poster = cmsPoster;
+  } else if (!video.poster || video.poster.includes('canva.site')) {
     video.poster = currentPortfolioCovers[index % currentPortfolioCovers.length];
   }
 
@@ -290,7 +293,12 @@ function setupDragToScroll(carousel, isVideo = false) {
 
 const socialCarousel = document.querySelector('[data-social-carousel]');
 if (socialCarousel) {
-  socialCarousel.innerHTML = latestInstagramPosts.map((post, index) => `<a class="photo-card" href="${post.link}" target="_blank" rel="noreferrer"><img src="${post.image}" alt="${post.label}" loading="lazy" onerror="this.onerror=null;this.src='${currentPortfolioCovers[index % currentPortfolioCovers.length]}'"><span>${post.label} <b>&#8599;</b></span></a>`).join('');
+  const cmsInstagramPosts = window.kmCMS?.data?.instagramPosts;
+  const postsToRender = (cmsInstagramPosts && Array.isArray(cmsInstagramPosts) && cmsInstagramPosts.length > 0)
+    ? cmsInstagramPosts
+    : latestInstagramPosts;
+
+  socialCarousel.innerHTML = postsToRender.map((post, index) => `<a class="photo-card" href="${post.link || ''}" target="_blank" rel="noreferrer"><img src="${post.image || ''}" alt="${post.label || ''}" loading="lazy" onerror="this.onerror=null;this.src='${currentPortfolioCovers[index % currentPortfolioCovers.length]}'"><span>${post.label || ''} <b>&#8599;</b></span></a>`).join('');
   const photoShell = socialCarousel.closest('.photo-carousel-shell');
   const photoStep = () => Math.min(socialCarousel.clientWidth * 0.8, 500);
   photoShell.querySelector('.prev').addEventListener('click', () => socialCarousel.scrollBy({ left: -photoStep(), behavior: 'smooth' }));

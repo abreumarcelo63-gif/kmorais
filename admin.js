@@ -774,10 +774,18 @@ class KMAdminPanel {
             await kmMediaStore.saveMedia(mediaId, this.selectedVideoFile, this.selectedVideoFile.type);
             finalVideoUrl = URL.createObjectURL(this.selectedVideoFile);
             finalVideoId = mediaId;
+            // Apaga vídeo antigo do banco se houver
+            if (this.currentEditingMedia.currentVideoId && this.currentEditingMedia.currentVideoId !== mediaId) {
+              await kmMediaStore.deleteMedia(this.currentEditingMedia.currentVideoId);
+            }
           } else if (isVideoFileTab && this.currentEditingMedia.currentVideoId && !finalVideoUrl) {
             finalVideoId = this.currentEditingMedia.currentVideoId;
             finalVideoUrl = await kmMediaStore.resolveUrl(finalVideoId);
           } else if (!isVideoFileTab) {
+            // Se trocou para URL externa e antes tinha arquivo no banco, apaga do banco
+            if (rawVideoUrl && this.currentEditingMedia.currentVideoId) {
+              await kmMediaStore.deleteMedia(this.currentEditingMedia.currentVideoId);
+            }
             finalVideoId = null;
           }
 
@@ -791,10 +799,18 @@ class KMAdminPanel {
             const compressed = await compressImageFile(this.selectedPosterFile);
             finalPosterUrl = compressed || URL.createObjectURL(this.selectedPosterFile);
             finalPosterId = mediaId;
+            // Apaga foto antiga do banco se houver
+            if (this.currentEditingMedia.currentPosterId && this.currentEditingMedia.currentPosterId !== mediaId) {
+              await kmMediaStore.deleteMedia(this.currentEditingMedia.currentPosterId);
+            }
           } else if (isPosterFileTab && this.currentEditingMedia.currentPosterId && !finalPosterUrl) {
             finalPosterId = this.currentEditingMedia.currentPosterId;
             finalPosterUrl = await kmMediaStore.resolveUrl(finalPosterId);
           } else if (!isPosterFileTab) {
+            // Se trocou para URL externa e antes tinha foto no banco, apaga do banco
+            if (rawPosterUrl && this.currentEditingMedia.currentPosterId) {
+              await kmMediaStore.deleteMedia(this.currentEditingMedia.currentPosterId);
+            }
             finalPosterId = null;
           }
 
@@ -1175,6 +1191,27 @@ class KMAdminPanel {
 
     // 1. Salva localmente de imediato
     const savedOk = kmCMS.saveContent(contentToSave);
+
+    // 1.1 Limpeza profunda no IndexedDB: apaga qualquer mídia do PC que não esteja mais sendo usada
+    try {
+      const activeMediaIds = [];
+      const collectMediaIds = (obj) => {
+        if (!obj) return;
+        if (typeof obj === 'string') {
+          if (obj.startsWith('idb:')) activeMediaIds.push(obj);
+        } else if (Array.isArray(obj)) {
+          obj.forEach(collectMediaIds);
+        } else if (typeof obj === 'object') {
+          Object.values(obj).forEach(collectMediaIds);
+        }
+      };
+      collectMediaIds(contentToSave);
+      if (window.kmMediaStore?.cleanupOrphans) {
+        await window.kmMediaStore.cleanupOrphans(activeMediaIds);
+      }
+    } catch (cleanErr) {
+      console.warn('Admin: erro ao limpar mídias órfãs do banco', cleanErr);
+    }
 
     if (window.opener && !window.opener.closed) {
       try {

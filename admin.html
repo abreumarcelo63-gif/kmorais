@@ -14,6 +14,15 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="admin.css">
+  <script>
+    /* Pré-aplicador instantâneo: executa de forma síncrona no head para sincronizar fotos/textos locais antes da pintura da tela */
+    (function() {
+      try {
+        var raw = localStorage.getItem('kmorais_cms_content_v1');
+        if (raw) window.__KM_EARLY_CMS__ = JSON.parse(raw);
+      } catch(e) {}
+    })();
+  </script>
 </head>
 <body>
   <!-- TELA DE LOGIN / BLOQUEIO ADMINISTRATIVO -->
@@ -693,8 +702,8 @@
     </div>
   </div>
 
-  <script src="script.js"></script>
   <script src="cms.js"></script>
+  <script src="script.js"></script>
   <script src="admin.js"></script>
 </body>
 

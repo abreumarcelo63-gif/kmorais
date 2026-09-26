@@ -228,6 +228,60 @@ class KMMediaStore {
     });
   }
 
+  async deleteMedia(id) {
+    if (!id || typeof id !== 'string') return false;
+    const db = await this.dbPromise;
+    if (!db) return false;
+    return new Promise((resolve) => {
+      try {
+        const tx = db.transaction('media', 'readwrite');
+        const store = tx.objectStore('media');
+        store.delete(id);
+        tx.oncomplete = () => {
+          this.blobUrlCache.delete(id);
+          resolve(true);
+        };
+        tx.onerror = () => resolve(false);
+      } catch (err) {
+        resolve(false);
+      }
+    });
+  }
+
+  async cleanupOrphans(activeIds = []) {
+    const db = await this.dbPromise;
+    if (!db) return 0;
+    const activeSet = new Set(activeIds.filter(id => id && typeof id === 'string' && id.startsWith('idb:')));
+    return new Promise((resolve) => {
+      try {
+        const tx = db.transaction('media', 'readwrite');
+        const store = tx.objectStore('media');
+        const req = store.getAllKeys();
+        req.onsuccess = () => {
+          const allKeys = req.result || [];
+          let removedCount = 0;
+          for (const key of allKeys) {
+            if (!activeSet.has(key)) {
+              store.delete(key);
+              this.blobUrlCache.delete(key);
+              removedCount++;
+            }
+          }
+          tx.oncomplete = () => {
+            if (removedCount > 0) {
+              console.log(`KMMediaStore: limpos ${removedCount} arquivo(s) antigos/órfãos do banco.`);
+            }
+            resolve(removedCount);
+          };
+          tx.onerror = () => resolve(0);
+        };
+        req.onerror = () => resolve(0);
+      } catch (err) {
+        resolve(0);
+      }
+    });
+  }
+
   async resolveUrl(urlOrId) {
     if (!urlOrId) return '';
     if (typeof urlOrId === 'string' && urlOrId.startsWith('idb:')) {
@@ -368,10 +422,11 @@ class KMCMS {
     if (!data) return;
 
     // =========================================================================
-    // FASE 1: APLICAÇÃO SÍNCRONA IMEDIATA DE TEXTOS (SEM AWAIT, EXECUTA EM 1ms)
+    // FASE 1: APLICAÇÃO SÍNCRONA IMEDIATA (TEXTOS E MÍDIAS DIRETAS SEM AWAIT)
+    // Executa em < 1ms: elimina 100% do flicker de imagens e fontes antes da tela pintar
     // =========================================================================
 
-    // 1. Hero Texts
+    // 1. Hero Texts & Mídias Diretas
     try {
       const heroEyebrow = document.querySelector('.hero-copy .eyebrow');
       if (heroEyebrow && data.hero?.eyebrow) {
@@ -392,21 +447,71 @@ class KMCMS {
       if (heroSticker && data.hero?.sticker) {
         heroSticker.innerHTML = sanitizeHtml(data.hero.sticker);
       }
+
+      const heroVideo = document.querySelector('.hero-frame video');
+      const heroFrame = document.querySelector('.hero-frame');
+      if (heroVideo) {
+        heroVideo.controls = false;
+        heroVideo.removeAttribute('controls');
+        heroVideo.muted = true;
+        if (typeof window !== 'undefined' && window.attachSoundButton && heroFrame) {
+          window.attachSoundButton(heroFrame, heroVideo);
+        }
+        if (data.hero?.poster && !data.hero.poster.startsWith('idb:')) {
+          if (heroVideo.poster !== data.hero.poster) heroVideo.poster = data.hero.poster;
+        }
+        if (data.hero?.video && !data.hero.video.startsWith('idb:')) {
+          const normVideo = normalizeVideoUrl(data.hero.video);
+          if (normVideo && heroVideo.src !== normVideo) {
+            const src = heroVideo.querySelector('source');
+            if (src) src.src = normVideo;
+            heroVideo.src = normVideo;
+          }
+        }
+      }
     } catch (e) {
-      console.error('CMS: Erro ao aplicar textos do Hero', e);
+      console.error('CMS: Erro ao aplicar textos e mídia do Hero', e);
     }
 
-    // 2. Título da seção de Marcas
+    // 2. Título e Marcas (Nomes e Logotipos Diretos)
     try {
       const brandsTitle = document.querySelector('#brands-title');
       if (brandsTitle && data.brandsTitle) {
         brandsTitle.innerHTML = sanitizeHtml(data.brandsTitle);
       }
+
+      if (data.brandsList && Array.isArray(data.brandsList)) {
+        const brandPills = document.querySelectorAll('.brands-grid .brand-pill');
+        data.brandsList.forEach((item, idx) => {
+          if (!brandPills[idx] || !item) return;
+          const pill = brandPills[idx];
+          const circle = pill.querySelector('.brand-pill-circle');
+          if (!circle) return;
+
+          if (item.name) {
+            pill.title = item.name;
+            const nameSpan = circle.querySelector('.brand-name');
+            if (nameSpan) nameSpan.textContent = item.name;
+          }
+
+          if (item.image && !item.image.startsWith('idb:')) {
+            circle.classList.add('has-custom-logo');
+            circle.dataset.customLogo = item.image;
+            let img = circle.querySelector('img.brand-logo-img');
+            if (!img) {
+              circle.innerHTML = `<img src="${item.image}" alt="${item.name || ''}" class="brand-logo-img">`;
+            } else if (img.src !== item.image) {
+              img.src = item.image;
+              img.alt = item.name || '';
+            }
+          }
+        });
+      }
     } catch (e) {
-      console.error('CMS: Erro ao aplicar título de Marcas', e);
+      console.error('CMS: Erro ao aplicar Marcas', e);
     }
 
-    // 3. Título e intro do Portfólio
+    // 3. Título, intro e Vídeos do Portfólio (Posters e Links Diretos)
     try {
       const portfolioTitle = document.querySelector('#portfolio-title');
       if (portfolioTitle && data.portfolioTitle) {
@@ -417,11 +522,50 @@ class KMCMS {
       if (portfolioIntro && data.portfolioIntro) {
         portfolioIntro.innerHTML = sanitizeHtml(data.portfolioIntro);
       }
+
+      if (data.portfolioVideos && Array.isArray(data.portfolioVideos) && data.portfolioVideos.length > 0) {
+        const cards = document.querySelectorAll('.video-card');
+        data.portfolioVideos.forEach((item, idx) => {
+          if (!cards[idx] || !item) return;
+          const video = cards[idx].querySelector('video');
+          const metaSpan = cards[idx].querySelector('.video-meta span:first-child');
+          if (metaSpan && item.label) {
+            metaSpan.innerHTML = item.label;
+          }
+          if (video) {
+            video.controls = false;
+            video.removeAttribute('controls');
+            video.muted = true;
+            if (typeof window !== 'undefined' && window.attachSoundButton) {
+              window.attachSoundButton(cards[idx], video);
+            }
+            if (item.poster && !item.poster.startsWith('idb:')) {
+              if (video.poster !== item.poster) video.poster = item.poster;
+            }
+            if (item.video && !item.video.startsWith('idb:')) {
+              const normVideo = normalizeVideoUrl(item.video);
+              if (normVideo) {
+                const isSocial = normVideo.includes('instagram.com') || normVideo.includes('tiktok.com');
+                if (isSocial) {
+                  cards[idx].dataset.externalUrl = normVideo;
+                } else {
+                  delete cards[idx].dataset.externalUrl;
+                  const src = video.querySelector('source');
+                  if (src && src.src !== normVideo) src.src = normVideo;
+                  if (video.src !== normVideo) {
+                    video.src = normVideo;
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
     } catch (e) {
-      console.error('CMS: Erro ao aplicar textos do Portfólio', e);
+      console.error('CMS: Erro ao aplicar textos e vídeos do Portfólio', e);
     }
 
-    // 4. Cases Reais ("Cases que saem da tela.") - Textos e Links
+    // 4. Cases Reais ("Cases que saem da tela.")
     try {
       if (data.realCases && Array.isArray(data.realCases)) {
         const cases = document.querySelectorAll('.real-case');
@@ -435,13 +579,19 @@ class KMCMS {
           if (tag && item.tag) tag.innerHTML = sanitizeHtml(item.tag);
           if (title && item.title) title.innerHTML = sanitizeHtml(item.title);
           if (desc && item.desc) desc.innerHTML = sanitizeHtml(item.desc);
+
+          const cover = el.querySelector('.real-case-cover');
+          if (cover && item.cover && !item.cover.startsWith('idb:')) {
+            cover.style.backgroundImage = `url("${item.cover}")`;
+            el.dataset.coverUrl = item.cover;
+          }
         });
       }
     } catch (e) {
-      console.error('CMS: Erro ao aplicar textos de Cases Reais', e);
+      console.error('CMS: Erro ao aplicar Cases Reais', e);
     }
 
-    // 5. Posts do Instagram ("O que está no ar agora.") - Legendas e Links
+    // 5. Posts do Instagram ("O que está no ar agora.")
     try {
       if (data.instagramPosts && Array.isArray(data.instagramPosts)) {
         const photoCards = document.querySelectorAll('.photo-card');
@@ -453,10 +603,14 @@ class KMCMS {
           if (span && post.label) {
             span.innerHTML = `${sanitizeHtml(post.label)} <b>&#8599;</b>`;
           }
+          const img = card.querySelector('img');
+          if (img && post.image && !post.image.startsWith('idb:')) {
+            if (img.src !== post.image) img.src = post.image;
+          }
         });
       }
     } catch (e) {
-      console.error('CMS: Erro ao aplicar textos do Instagram', e);
+      console.error('CMS: Erro ao aplicar posts do Instagram', e);
     }
 
     // 6. Serviços - Título e Cards
@@ -480,7 +634,7 @@ class KMCMS {
       console.error('CMS: Erro ao aplicar textos de Serviços', e);
     }
 
-    // 7. Sobre - Título e Bio
+    // 7. Sobre - Título, Bio e Foto da Kelly (Aplicação imediata se for URL/Base64)
     try {
       const aboutTitle = document.querySelector('#about-title');
       if (aboutTitle && data.about?.title) {
@@ -491,8 +645,15 @@ class KMCMS {
       if (aboutContentP && data.about?.bio) {
         aboutContentP.innerHTML = sanitizeHtml(data.about.bio);
       }
+
+      const aboutImg = document.querySelector('.about-image img');
+      if (aboutImg && data.about?.image && !data.about.image.startsWith('idb:')) {
+        if (aboutImg.src !== data.about.image) {
+          aboutImg.src = data.about.image;
+        }
+      }
     } catch (e) {
-      console.error('CMS: Erro ao aplicar textos da seção Sobre', e);
+      console.error('CMS: Erro ao aplicar textos e foto da seção Sobre', e);
     }
 
     // 8. Contato - Título, Email e WhatsApp
@@ -520,174 +681,146 @@ class KMCMS {
     }
 
     // =========================================================================
-    // FASE 2: RESOLUÇÃO ASSÍNCRONA DE MÍDIAS (ISOLADAS, EM PARALELO)
+    // FASE 2: RESOLUÇÃO ASSÍNCRONA PARALELA APENAS PARA MÍDIAS IDB (INDEXEDDB)
+    // Executa simultaneamente em segundo plano sem travar nem criar filas
     // =========================================================================
 
-    // 9. Hero Video & Poster
-    try {
-      const heroVideo = document.querySelector('.hero-frame video');
-      const heroFrame = document.querySelector('.hero-frame');
-      if (heroVideo) {
-        heroVideo.controls = false;
-        heroVideo.removeAttribute('controls');
-        heroVideo.muted = true;
-        if (typeof window !== 'undefined' && window.attachSoundButton && heroFrame) {
-          window.attachSoundButton(heroFrame, heroVideo);
-        }
-        if (data.hero?.video) {
-          const rawVideo = await kmMediaStore.resolveUrl(data.hero.video);
-          const resolvedVideo = normalizeVideoUrl(rawVideo);
-          if (resolvedVideo) {
-            const src = heroVideo.querySelector('source');
-            if (src) src.src = resolvedVideo;
-            heroVideo.src = resolvedVideo;
-            heroVideo.load();
-          }
-        }
-        if (data.hero?.poster) {
-          const resolvedPoster = await kmMediaStore.resolveUrl(data.hero.poster);
-          if (resolvedPoster && heroVideo.poster !== resolvedPoster) {
-            heroVideo.poster = resolvedPoster;
-          }
-        }
-      }
-    } catch (e) {
-      console.error('CMS: Erro ao resolver mídia do Hero', e);
-    }
+    const asyncTasks = [];
 
-    // 10. Marcas (Brand Pills - Nomes Visíveis e Logotipos Customizados)
-    try {
-      if (data.brandsList && Array.isArray(data.brandsList)) {
-        const brandPills = document.querySelectorAll('.brands-grid .brand-pill');
-        await Promise.allSettled(data.brandsList.map(async (item, idx) => {
-          if (!brandPills[idx] || !item) return;
-          const pill = brandPills[idx];
-          const circle = pill.querySelector('.brand-pill-circle');
-          if (!circle) return;
-
-          if (item.name) {
-            pill.title = item.name;
-            const nameSpan = circle.querySelector('.brand-name');
-            if (nameSpan) nameSpan.textContent = item.name;
-          }
-
-          if (item.image) {
-            const resolvedImg = await kmMediaStore.resolveUrl(item.image);
-            if (resolvedImg) {
-              circle.classList.add('has-custom-logo');
-              circle.dataset.customLogo = item.image;
-              let img = circle.querySelector('img.brand-logo-img');
-              if (!img) {
-                circle.innerHTML = `<img src="${resolvedImg}" alt="${item.name || ''}" class="brand-logo-img">`;
-              } else {
-                img.src = resolvedImg;
-                img.alt = item.name || '';
-              }
+    // 9. Hero Video/Poster IDB
+    if (data.hero?.video?.startsWith('idb:') || data.hero?.poster?.startsWith('idb:')) {
+      asyncTasks.push((async () => {
+        try {
+          const heroVideo = document.querySelector('.hero-frame video');
+          if (!heroVideo) return;
+          if (data.hero.video?.startsWith('idb:')) {
+            const raw = await kmMediaStore.resolveUrl(data.hero.video);
+            const resolved = normalizeVideoUrl(raw);
+            if (resolved) {
+              const src = heroVideo.querySelector('source');
+              if (src) src.src = resolved;
+              heroVideo.src = resolved;
             }
           }
-        }));
-      }
-    } catch (e) {
-      console.error('CMS: Erro ao resolver logotipos de Marcas', e);
+          if (data.hero.poster?.startsWith('idb:')) {
+            const resolved = await kmMediaStore.resolveUrl(data.hero.poster);
+            if (resolved && heroVideo.poster !== resolved) heroVideo.poster = resolved;
+          }
+        } catch (e) {
+          console.warn('CMS: Erro ao resolver mídia IDB do Hero', e);
+        }
+      })());
     }
 
-    // 11. Vídeos do Portfólio (30 cards)
-    try {
-      if (data.portfolioVideos && Array.isArray(data.portfolioVideos) && data.portfolioVideos.length > 0) {
-        const cards = document.querySelectorAll('.video-card');
-        await Promise.allSettled(data.portfolioVideos.map(async (item, idx) => {
-          if (!cards[idx] || !item) return;
-          const video = cards[idx].querySelector('video');
-          const metaSpan = cards[idx].querySelector('.video-meta span:first-child');
-          if (metaSpan && item.label) {
-            metaSpan.innerHTML = item.label;
-          }
-          if (video) {
-            video.controls = false;
-            video.removeAttribute('controls');
-            video.muted = true;
-            if (typeof window !== 'undefined' && window.attachSoundButton) {
-              window.attachSoundButton(cards[idx], video);
-            }
-            const src = video.querySelector('source');
-            if (item.video) {
-              const rawVideo = await kmMediaStore.resolveUrl(item.video);
-              const resolvedVideo = normalizeVideoUrl(rawVideo);
-              if (resolvedVideo) {
-                const isSocial = resolvedVideo.includes('instagram.com') || resolvedVideo.includes('tiktok.com');
-                if (isSocial) {
-                  cards[idx].dataset.externalUrl = resolvedVideo;
+    // 10. Marcas IDB
+    if (data.brandsList && Array.isArray(data.brandsList)) {
+      data.brandsList.forEach((item, idx) => {
+        if (item?.image?.startsWith('idb:')) {
+          asyncTasks.push((async () => {
+            try {
+              const brandPills = document.querySelectorAll('.brands-grid .brand-pill');
+              const pill = brandPills[idx];
+              const circle = pill?.querySelector('.brand-pill-circle');
+              if (!circle) return;
+              const resolved = await kmMediaStore.resolveUrl(item.image);
+              if (resolved) {
+                circle.classList.add('has-custom-logo');
+                circle.dataset.customLogo = item.image;
+                let img = circle.querySelector('img.brand-logo-img');
+                if (!img) {
+                  circle.innerHTML = `<img src="${resolved}" alt="${item.name || ''}" class="brand-logo-img">`;
                 } else {
-                  delete cards[idx].dataset.externalUrl;
-                  if (src) src.src = resolvedVideo;
-                  video.src = resolvedVideo;
-                  video.load();
+                  img.src = resolved;
                 }
               }
-            }
-            if (item.poster) {
-              const resolvedPoster = await kmMediaStore.resolveUrl(item.poster);
-              if (resolvedPoster && video.poster !== resolvedPoster) {
-                video.poster = resolvedPoster;
-              }
-            }
-          }
-        }));
-      }
-    } catch (e) {
-      console.error('CMS: Erro ao resolver vídeos do Portfólio', e);
-    }
-
-    // 12. Cases Reais - Capas de Imagem
-    try {
-      if (data.realCases && Array.isArray(data.realCases)) {
-        const cases = document.querySelectorAll('.real-case');
-        await Promise.allSettled(data.realCases.map(async (item, idx) => {
-          if (!cases[idx] || !item) return;
-          const cover = cases[idx].querySelector('.real-case-cover');
-          if (cover && item.cover) {
-            const resolvedCover = await kmMediaStore.resolveUrl(item.cover);
-            if (resolvedCover) {
-              cover.style.backgroundImage = `url("${resolvedCover}")`;
-              cases[idx].dataset.coverUrl = item.cover;
-            }
-          }
-        }));
-      }
-    } catch (e) {
-      console.error('CMS: Erro ao resolver capas de Cases Reais', e);
-    }
-
-    // 13. Posts do Instagram - Imagens
-    try {
-      if (data.instagramPosts && Array.isArray(data.instagramPosts)) {
-        const photoCards = document.querySelectorAll('.photo-card');
-        await Promise.allSettled(data.instagramPosts.map(async (post, idx) => {
-          if (!photoCards[idx] || !post) return;
-          const img = photoCards[idx].querySelector('img');
-          if (img && post.image) {
-            const resolvedImg = await kmMediaStore.resolveUrl(post.image);
-            if (resolvedImg && img.src !== resolvedImg) {
-              img.src = resolvedImg;
-            }
-          }
-        }));
-      }
-    } catch (e) {
-      console.error('CMS: Erro ao resolver fotos do Instagram', e);
-    }
-
-    // 14. Foto da Kelly (Sobre)
-    try {
-      const aboutImg = document.querySelector('.about-image img');
-      if (aboutImg && data.about?.image) {
-        const resolvedImg = await kmMediaStore.resolveUrl(data.about.image);
-        if (resolvedImg && aboutImg.src !== resolvedImg) {
-          aboutImg.src = resolvedImg;
+            } catch (e) {}
+          })());
         }
-      }
-    } catch (e) {
-      console.error('CMS: Erro ao resolver foto da Kelly', e);
+      });
+    }
+
+    // 11. Vídeos do Portfólio IDB
+    if (data.portfolioVideos && Array.isArray(data.portfolioVideos)) {
+      data.portfolioVideos.forEach((item, idx) => {
+        if (item?.video?.startsWith('idb:') || item?.poster?.startsWith('idb:')) {
+          asyncTasks.push((async () => {
+            try {
+              const cards = document.querySelectorAll('.video-card');
+              const video = cards[idx]?.querySelector('video');
+              if (!video) return;
+              if (item.video?.startsWith('idb:')) {
+                const resolved = await kmMediaStore.resolveUrl(item.video);
+                if (resolved) {
+                  const src = video.querySelector('source');
+                  if (src) src.src = resolved;
+                  video.src = resolved;
+                }
+              }
+              if (item.poster?.startsWith('idb:')) {
+                const resolved = await kmMediaStore.resolveUrl(item.poster);
+                if (resolved && video.poster !== resolved) video.poster = resolved;
+              }
+            } catch (e) {}
+          })());
+        }
+      });
+    }
+
+    // 12. Cases Reais IDB
+    if (data.realCases && Array.isArray(data.realCases)) {
+      data.realCases.forEach((item, idx) => {
+        if (item?.cover?.startsWith('idb:')) {
+          asyncTasks.push((async () => {
+            try {
+              const cases = document.querySelectorAll('.real-case');
+              const cover = cases[idx]?.querySelector('.real-case-cover');
+              if (!cover) return;
+              const resolved = await kmMediaStore.resolveUrl(item.cover);
+              if (resolved) {
+                cover.style.backgroundImage = `url("${resolved}")`;
+                cases[idx].dataset.coverUrl = item.cover;
+              }
+            } catch (e) {}
+          })());
+        }
+      });
+    }
+
+    // 13. Instagram Posts IDB
+    if (data.instagramPosts && Array.isArray(data.instagramPosts)) {
+      data.instagramPosts.forEach((post, idx) => {
+        if (post?.image?.startsWith('idb:')) {
+          asyncTasks.push((async () => {
+            try {
+              const photoCards = document.querySelectorAll('.photo-card');
+              const img = photoCards[idx]?.querySelector('img');
+              if (!img) return;
+              const resolved = await kmMediaStore.resolveUrl(post.image);
+              if (resolved && img.src !== resolved) {
+                img.src = resolved;
+              }
+            } catch (e) {}
+          })());
+        }
+      });
+    }
+
+    // 14. Foto da Kelly IDB (Sobre)
+    if (data.about?.image?.startsWith('idb:')) {
+      asyncTasks.push((async () => {
+        try {
+          const aboutImg = document.querySelector('.about-image img');
+          if (!aboutImg) return;
+          const resolved = await kmMediaStore.resolveUrl(data.about.image);
+          if (resolved && aboutImg.src !== resolved) {
+            aboutImg.src = resolved;
+          }
+        } catch (e) {}
+      })());
+    }
+
+    if (asyncTasks.length > 0) {
+      await Promise.allSettled(asyncTasks);
     }
   }
 }
